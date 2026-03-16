@@ -29,3 +29,39 @@ export async function playSound(_name: SoundName): Promise<void> {
     // No sound/haptic available — silently ignore
   }
 }
+
+/**
+ * Soft retro pixel click — like a Game Boy menu cursor or Tamagotchi beep.
+ * Single square wave blip, low volume, gentle.
+ */
+export async function playButtonClick(): Promise<void> {
+  try {
+    if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+      const AC = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AC();
+      const t = ctx.currentTime;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';  // Triangle wave — softest 8-bit waveform, warm and round
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      // Gentle "boop" — starts at G5, tiny pitch bend down for warmth
+      osc.frequency.setValueAtTime(784, t);
+      osc.frequency.exponentialRampToValueAtTime(660, t + 0.04); // Soft downward bend
+      gain.gain.setValueAtTime(0.0, t);
+      gain.gain.linearRampToValueAtTime(0.15, t + 0.005);  // Quick but soft attack
+      gain.gain.setValueAtTime(0.12, t + 0.015);            // Gentle sustain
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06); // Smooth fade
+
+      osc.start(t);
+      osc.stop(t + 0.065);
+    }
+  } catch {
+    try {
+      const Haptics = require('expo-haptics');
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {}
+  }
+}

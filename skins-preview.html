@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #1a1a2e; font-family: -apple-system, sans-serif; padding: 30px; color: #fff; }
+  h1 { text-align: center; margin-bottom: 8px; font-size: 28px; letter-spacing: 3px; }
+  .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 30px; }
+  
+  .layout { display: flex; gap: 40px; max-width: 1000px; margin: 0 auto; }
+  
+  /* LEFT: Live preview */
+  .preview-panel { flex: 0 0 320px; text-align: center; position: sticky; top: 30px; align-self: flex-start; }
+  .preview-label { font-size: 12px; color: #666; letter-spacing: 2px; margin-bottom: 15px; text-transform: uppercase; }
+  
+  .egg-preview { width: 260px; height: 290px; margin: 0 auto; position: relative; border-radius: 48% 48% 48% 48% / 52% 52% 48% 48%; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.5); transition: all 0.3s ease; }
+  
+  /* Crack bezel shape from Figma design */
+  .egg-preview .star-cutout { position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%); width: 160px; height: 155px; clip-path: polygon(
+    25.6% 7.0%, 9.6% 22.0%, 13.1% 43.1%, 0.1% 63.2%, 10.7% 71.0%, 16.9% 96.3%, 30.5% 88.7%, 42.3% 99.9%, 58.6% 88.7%, 78.0% 95.3%, 90.7% 80.8%, 89.6% 67.5%, 99.9% 59.6%, 89.6% 39.4%, 86.6% 12.2%, 63.9% 13.7%, 46.8% 0.1%, 33.9% 13.7%
+  ); z-index: 3; transition: background 0.3s; }
+  .egg-preview .star-inner { position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%); width: 154px; height: 149px; clip-path: polygon(
+    25.6% 7.0%, 9.6% 22.0%, 13.1% 43.1%, 0.1% 63.2%, 10.7% 71.0%, 16.9% 96.3%, 30.5% 88.7%, 42.3% 99.9%, 58.6% 88.7%, 78.0% 95.3%, 90.7% 80.8%, 89.6% 67.5%, 99.9% 59.6%, 89.6% 39.4%, 86.6% 12.2%, 63.9% 13.7%, 46.8% 0.1%, 33.9% 13.7%
+  ); background: #1a1a22; z-index: 4; }
+  
+  .egg-preview .screen { position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%); width: 110px; height: 100px; border-radius: 4px; z-index: 5; border: 1px solid rgba(0,0,0,0.2); background: #C8D8C0; }
+  .screen-content { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  .screen-pet { font-size: 24px; }
+  .screen-bars { display: flex; gap: 3px; margin-top: 4px; }
+  .screen-bar { width: 16px; height: 3px; background: rgba(0,0,0,0.15); border-radius: 1px; }
+  
+  .egg-preview .buttons-row { position: absolute; bottom: 16%; left: 50%; transform: translateX(-50%); display: flex; gap: 16px; align-items: flex-start; z-index: 5; }
+  .egg-preview .egg-btn { width: 20px; height: 20px; border-radius: 50%; box-shadow: 0 3px 6px rgba(0,0,0,0.3), inset 0 2px 3px rgba(255,255,255,0.35); transition: background 0.3s; }
+  .egg-preview .egg-btn.mid { margin-top: 5px; }
+  
+  /* Gloss effect */
+  .egg-preview .gloss { position: absolute; top: 8%; right: 12%; width: 35%; height: 22%; background: rgba(255,255,255,0.12); border-radius: 50%; transform: rotate(-15deg); z-index: 6; pointer-events: none; }
+  
+  /* RIGHT: Controls */
+  .controls-panel { flex: 1; }
+  .control-group { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.08); }
+  .control-group h3 { font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: #888; margin-bottom: 14px; }
+  .control-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .control-row label { font-size: 13px; color: #aaa; width: 120px; flex-shrink: 0; }
+  .control-row input[type="color"] { width: 44px; height: 32px; border: 2px solid rgba(255,255,255,0.15); border-radius: 8px; cursor: pointer; background: transparent; padding: 2px; }
+  .control-row input[type="color"]::-webkit-color-swatch { border-radius: 5px; border: none; }
+  .control-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+  .hex-display { font-family: monospace; font-size: 12px; color: #666; width: 70px; }
+  
+  /* Presets */
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .preset-btn { padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #ccc; font-size: 12px; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+  .preset-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.3); color: #fff; }
+  .preset-btn.active { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.4); color: #fff; }
+  
+  /* Preset color dots */
+  .preset-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; border: 1px solid rgba(255,255,255,0.2); }
+  
+  /* Export */
+  .export-row { display: flex; gap: 10px; margin-top: 10px; }
+  .export-btn { padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #ccc; font-size: 12px; cursor: pointer; transition: all 0.2s; font-family: inherit; letter-spacing: 1px; }
+  .export-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  #export-output { margin-top: 12px; font-family: monospace; font-size: 11px; color: #888; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; display: none; white-space: pre-wrap; word-break: break-all; }
+</style>
+</head>
+<body>
+<h1>🥚 TAMAPAL SKIN STUDIO</h1>
+<p class="subtitle">2 controls — Shell color + Button color</p>
+
+<div class="layout">
+  <!-- Live Preview -->
+  <div class="preview-panel">
+    <div class="preview-label">Live Preview</div>
+    <div class="egg-preview" id="egg">
+      <div class="star-cutout" id="starBezel"></div>
+      <div class="star-inner"></div>
+      <div class="screen">
+        <div class="screen-content">
+          <div class="screen-pet">🐣</div>
+          <div class="screen-bars"><div class="screen-bar"></div><div class="screen-bar"></div><div class="screen-bar"></div><div class="screen-bar"></div></div>
+        </div>
+      </div>
+      <div class="buttons-row">
+        <div class="egg-btn" id="btnL"></div>
+        <div class="egg-btn mid" id="btnM"></div>
+        <div class="egg-btn" id="btnR"></div>
+      </div>
+      <div class="gloss"></div>
+    </div>
+    <div id="skinNameDisplay" style="margin-top:16px;font-size:18px;font-weight:700;letter-spacing:2px;">Classic Cream</div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-panel">
+    <!-- Presets -->
+    <div class="control-group">
+      <h3>Presets</h3>
+      <div class="presets" id="presets"></div>
+    </div>
+
+    <!-- Color Pickers — just 2 -->
+    <div class="control-group">
+      <h3>Shell</h3>
+      <div class="control-row">
+        <label>Body Color</label>
+        <input type="color" id="bodyColor" value="#EFE9DE">
+        <span class="hex-display" id="bodyHex">#EFE9DE</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <h3>Buttons</h3>
+      <div class="control-row">
+        <label>Button Color</label>
+        <input type="color" id="buttonColor" value="#D8C8A0">
+        <span class="hex-display" id="buttonHex">#D8C8A0</span>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div class="control-group">
+      <h3>Export</h3>
+      <div class="export-row">
+        <button class="export-btn" onclick="exportColors()">📋 Copy Colors</button>
+        <button class="export-btn" onclick="exportBlenderPrompt()">🎨 Copy Blender Prompt</button>
+      </div>
+      <div id="export-output"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PRESETS = {
+  'Classic Cream':    { body:'#EFE9DE', button:'#D8C8A0' },
+  'Sakura Pink':      { body:'#FFD4E5', button:'#F0E0E0' },
+  'Ocean Blue':       { body:'#D4E8F0', button:'#C0C8D4' },
+  'Matcha Green':     { body:'#D4E8C8', button:'#E0D8C0' },
+  'Midnight':         { body:'#2A2A3A', button:'#C4A858' },
+  'Lavender Dream':   { body:'#E0D4F0', button:'#D0C0E0' },
+  'Sunset Orange':    { body:'#FFD4B8', button:'#C88860' },
+  'Strawberry':       { body:'#FF9AAC', button:'#F0A0B0' },
+  'Bubblegum':        { body:'#F0B8E0', button:'#A0D8E8' },
+  'Honey Gold':       { body:'#F0D898', button:'#C8A050' },
+  'Arctic White':     { body:'#F0F0F4', button:'#D8D8E0' },
+  'Forest':           { body:'#88B888', button:'#A09070' },
+};
+
+let current = { ...PRESETS['Classic Cream'] };
+
+// Build preset buttons with color dots
+const presetsEl = document.getElementById('presets');
+Object.entries(PRESETS).forEach(([name, colors]) => {
+  const btn = document.createElement('button');
+  btn.className = 'preset-btn';
+  btn.innerHTML = `<span class="preset-dot" style="background:${colors.body}"></span><span class="preset-dot" style="background:${colors.button}"></span>${name}`;
+  btn.onclick = () => applyPreset(name);
+  presetsEl.appendChild(btn);
+});
+
+function applyPreset(name) {
+  current = { ...PRESETS[name] };
+  document.getElementById('bodyColor').value = current.body;
+  document.getElementById('buttonColor').value = current.button;
+  document.getElementById('skinNameDisplay').textContent = name;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.textContent.includes(name)));
+  updatePreview();
+}
+
+function updatePreview() {
+  // Body
+  document.getElementById('egg').style.background = current.body;
+  // Star bezel — slightly darker than body
+  document.getElementById('starBezel').style.background = darken(current.body, 15);
+  // Buttons
+  const btnGrad = `linear-gradient(135deg, ${lighten(current.button, 15)}, ${current.button})`;
+  document.getElementById('btnL').style.background = btnGrad;
+  document.getElementById('btnM').style.background = btnGrad;
+  document.getElementById('btnR').style.background = btnGrad;
+  // Hex displays
+  document.getElementById('bodyHex').textContent = current.body.toUpperCase();
+  document.getElementById('buttonHex').textContent = current.button.toUpperCase();
+}
+
+// Color picker listeners
+document.getElementById('bodyColor').addEventListener('input', e => {
+  current.body = e.target.value;
+  document.getElementById('skinNameDisplay').textContent = 'Custom';
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  updatePreview();
+});
+document.getElementById('buttonColor').addEventListener('input', e => {
+  current.button = e.target.value;
+  document.getElementById('skinNameDisplay').textContent = 'Custom';
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  updatePreview();
+});
+
+function lighten(hex, pct) {
+  const num = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, ((num >> 16) & 0xFF) + pct);
+  const g = Math.min(255, ((num >> 8) & 0xFF) + pct);
+  const b = Math.min(255, (num & 0xFF) + pct);
+  return `rgb(${r},${g},${b})`;
+}
+function darken(hex, pct) {
+  const num = parseInt(hex.slice(1), 16);
+  const r = Math.max(0, ((num >> 16) & 0xFF) - pct);
+  const g = Math.max(0, ((num >> 8) & 0xFF) - pct);
+  const b = Math.max(0, (num & 0xFF) - pct);
+  return `rgb(${r},${g},${b})`;
+}
+
+function exportColors() {
+  const out = JSON.stringify(current, null, 2);
+  navigator.clipboard.writeText(out);
+  const el = document.getElementById('export-output');
+  el.style.display = 'block';
+  el.textContent = '✅ Copied!\n\n' + out;
+}
+
+function exportBlenderPrompt() {
+  const prompt = `Change the Tamagotchi egg materials:
+- Body/shell: ${current.body} (smooth matte-glossy plastic)
+- Star bezel: slightly darker than body
+- All 3 buttons: ${current.button} (glossy dome)
+Keep all geometry the same. Only change colors.`;
+  navigator.clipboard.writeText(prompt);
+  const el = document.getElementById('export-output');
+  el.style.display = 'block';
+  el.textContent = '✅ Blender prompt copied!\n\n' + prompt;
+}
+
+// Init
+applyPreset('Classic Cream');
+</script>
+</body>
+</html>

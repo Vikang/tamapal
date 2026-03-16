@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react';
-import { View, Pressable, Text, StyleSheet, Platform } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Pressable, Image, StyleSheet, Platform, ImageSourcePropType } from 'react-native';
 import DeviceScreen from './DeviceScreen';
+import { playButtonClick } from '../utils/sound';
+import { triggerHaptic } from '../utils/haptics';
 
 interface EggShellProps {
   onLeftPress: () => void;
@@ -8,438 +10,171 @@ interface EggShellProps {
   onRightPress: () => void;
 }
 
-/**
- * Crown/zigzag bezel with iridescent silver→lavender gradient.
- */
-const CrownBezel: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const triH = 15;
-  const hCount = 8;
-  const vCount = 5;
+// ── Preload all egg frame images ──────────────────────────────────
+const EGG_REST = require('../assets/egg-rest.png');
+const EGG_LEFT_PRESSED = require('../assets/egg-left-pressed.png');
+const EGG_MIDDLE_PRESSED = require('../assets/egg-middle-pressed.png');
+const EGG_RIGHT_PRESSED = require('../assets/egg-right-pressed.png');
 
-  const colorAt = (t: number) => {
-    // Silver (#D0CCD8) → Lavender (#B098C0)
-    const r = Math.round(208 + (176 - 208) * t);
-    const g = Math.round(204 + (152 - 204) * t);
-    const b = Math.round(216 + (192 - 216) * t);
-    return `rgb(${r},${g},${b})`;
-  };
-
-  const tri = (dir: 'up' | 'down' | 'left' | 'right', idx: number, c: string) => {
-    const hw = triH / 2 + 3;
-    const s: any = {
-      width: 0, height: 0,
-      borderLeftColor: 'transparent', borderRightColor: 'transparent',
-      borderTopColor: 'transparent', borderBottomColor: 'transparent',
-    };
-    if (dir === 'up') { s.borderLeftWidth = hw; s.borderRightWidth = hw; s.borderBottomWidth = triH; s.borderBottomColor = c; }
-    else if (dir === 'down') { s.borderLeftWidth = hw; s.borderRightWidth = hw; s.borderTopWidth = triH; s.borderTopColor = c; }
-    else if (dir === 'left') { s.borderTopWidth = hw - 1; s.borderBottomWidth = hw - 1; s.borderRightWidth = triH; s.borderRightColor = c; }
-    else { s.borderTopWidth = hw - 1; s.borderBottomWidth = hw - 1; s.borderLeftWidth = triH; s.borderLeftColor = c; }
-    return <View key={`${dir}-${idx}`} style={s} />;
-  };
-
-  // FIX 3: Gradient direction — top row = silver (t=0), bottom row = lavender (t=1)
-  // Top row triangles: t≈0 (silver)
-  // Side triangles: t goes 0→1 top-to-bottom
-  // Bottom row triangles: t≈1 (lavender)
-  return (
-    <View style={styles.crownOuter}>
-      <View style={styles.crownRow}>
-        {Array.from({ length: hCount }, (_, i) => tri('up', i, colorAt(0)))}
-      </View>
-      <View style={styles.crownMiddle}>
-        <View style={styles.crownCol}>
-          {Array.from({ length: vCount }, (_, i) => tri('left', i, colorAt(vCount > 1 ? i / (vCount - 1) : 0.5)))}
-        </View>
-        <View style={styles.crownInner}>
-          {children}
-        </View>
-        <View style={styles.crownCol}>
-          {Array.from({ length: vCount }, (_, i) => tri('right', i, colorAt(vCount > 1 ? i / (vCount - 1) : 0.5)))}
-        </View>
-      </View>
-      <View style={styles.crownRow}>
-        {Array.from({ length: hCount }, (_, i) => tri('down', i, colorAt(1)))}
-      </View>
-    </View>
-  );
+const EGG_FRAMES: Record<string, ImageSourcePropType> = {
+  left: EGG_LEFT_PRESSED,
+  middle: EGG_MIDDLE_PRESSED,
+  right: EGG_RIGHT_PRESSED,
 };
 
+// ── Layout constants ──────────────────────────────────────────────
+// The 3D egg render is 800×1000 px. We display it at 340 px wide.
+const IMG_W = 1000;
+const IMG_H = 1250;
+const EGG_DISPLAY_W = 600;
+const SCALE = EGG_DISPLAY_W / IMG_W; // 0.425
+const EGG_DISPLAY_H = IMG_H * SCALE; // 425
+
+// Screen cutout in the source image (measured from alpha channel)
+const CUT_X = 346;
+const CUT_Y = 471;
+const CUT_W = 306;
+const CUT_H = 306; // square cutout
+
+// Scaled cutout position & size
+const SCREEN_LEFT = Math.round(CUT_X * SCALE);
+const SCREEN_TOP = Math.round(CUT_Y * SCALE);
+const SCREEN_W = Math.round(CUT_W * SCALE);
+const SCREEN_H = Math.round(CUT_H * SCALE);
+
+// Button centres in the source image (approximate from Blender model)
+const BTN_RADIUS = 22; // touch target radius at display scale
+// Button centres in 1000x1250 image
+const buttons = [
+  { x: 388, y: 900 }, // A – left
+  { x: 500, y: 938 }, // B – middle
+  { x: 612, y: 900 }, // C – right
+];
+
+type ButtonId = 'left' | 'middle' | 'right';
+
+const PRESS_DURATION_MS = 150;
+
 const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRightPress }) => {
-  // Keyboard support for web
+  const [pressedButton, setPressedButton] = useState<ButtonId | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const handleButtonPress = useCallback((buttonId: ButtonId, handler: () => void) => {
+    // 1. Play click sound + haptic feedback (fire-and-forget)
+    playButtonClick();
+    triggerHaptic('light');
+
+    // 2. Swap to pressed frame
+    setPressedButton(buttonId);
+
+    // 3. After 150ms, reset image and call the action handler
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setPressedButton(null);
+      handler();
+      timeoutRef.current = null;
+    }, PRESS_DURATION_MS);
+  }, []);
+
+  const handleLeft = useCallback(() => handleButtonPress('left', onLeftPress), [handleButtonPress, onLeftPress]);
+  const handleMiddle = useCallback(() => handleButtonPress('middle', onMiddlePress), [handleButtonPress, onMiddlePress]);
+  const handleRight = useCallback(() => handleButtonPress('right', onRightPress), [handleButtonPress, onRightPress]);
+
+  const btnHandlers = [handleLeft, handleMiddle, handleRight];
+
+  // ── Keyboard support (web) ────────────────────────────────────
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
-        // Button A (Left) — SELECT/SCROLL
-        case 'a':
-        case 'A':
-        case 'ArrowLeft':
-          e.preventDefault();
-          onLeftPress();
-          break;
-        // Button B (Middle) — EXECUTE/CONFIRM
-        case 's':
-        case 'S':
-        case 'ArrowDown':
-        case 'Enter':
-        case ' ':
-          e.preventDefault();
-          onMiddlePress();
-          break;
-        // Button C (Right) — CANCEL/BACK
-        case 'd':
-        case 'D':
-        case 'ArrowRight':
-        case 'Escape':
-          e.preventDefault();
-          onRightPress();
-          break;
+        case 'a': case 'A': case 'ArrowLeft':
+          e.preventDefault(); handleLeft(); break;
+        case 's': case 'S': case 'ArrowDown': case 'Enter': case ' ':
+          e.preventDefault(); handleMiddle(); break;
+        case 'd': case 'D': case 'ArrowRight': case 'Escape':
+          e.preventDefault(); handleRight(); break;
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onLeftPress, onMiddlePress, onRightPress]);
+  }, [handleLeft, handleMiddle, handleRight]);
+
+  // Select the correct egg frame based on pressed state
+  const eggSource = pressedButton ? EGG_FRAMES[pressedButton] : EGG_REST;
 
   return (
-    <View style={styles.eggOuter}>
-      {/* Soft elliptical shadow */}
-      <View style={styles.eggShadow} />
-
-      {/* Main egg body */}
-      <View style={[styles.eggBody, eggBodyWebStyle]}>
-        {/* Edge darkening — left side */}
-        <View style={[styles.edgeLeft, edgeLeftWebStyle]} />
-        {/* Edge darkening — right side */}
-        <View style={[styles.edgeRight, edgeRightWebStyle]} />
-        {/* Bottom darkening for 3D curvature */}
-        <View style={[styles.edgeBottom, edgeBottomWebStyle]} />
-
-        {/* Speckle dots */}
-        {Array.from({ length: 55 }, (_, i) => (
-          <View
-            key={`sp-${i}`}
-            style={[styles.speck, {
-              top: `${(i * 17 + 3) % 94}%` as any,
-              left: `${(i * 23 + 5) % 90}%` as any,
-              width: (i % 3) + 1.5, height: (i % 3) + 1.5,
-              opacity: 0.08 + (i % 4) * 0.03,
-            }]}
-          />
-        ))}
-
-        {/* Silver cap — bottom portion */}
-        <View style={styles.silverCapWrap}>
-          {/* Jagged top edge */}
-          <View style={styles.jaggedRow}>
-            {Array.from({ length: 18 }, (_, i) => (
-              <View key={`j-${i}`} style={{
-                width: 0, height: 0,
-                borderLeftWidth: 9, borderRightWidth: 9,
-                borderBottomWidth: 6 + (i % 3) * 3,
-                borderLeftColor: 'transparent', borderRightColor: 'transparent',
-                borderBottomColor: i % 2 === 0 ? '#C4C2CC' : '#BBB9C6',
-              }} />
-            ))}
-          </View>
-          <View style={[styles.silverCap, silverCapWebStyle]}>
-            {/* Primary metallic sheen */}
-            <View style={[styles.sheenPrimary, sheenWebStyle]} />
-            {/* Secondary soft glow */}
-            <View style={styles.sheenSecondary} />
-          </View>
-        </View>
-
-        {/* Big glossy highlight — upper right (specular) */}
-        <View style={[styles.glossBig, glossBigWebStyle]} />
-        {/* Smaller secondary highlight */}
-        <View style={[styles.glossMed, glossMedWebStyle]} />
-
-        {/* Brand label */}
-        <Text style={styles.brandLabel}>TAMAPAL</Text>
-
-        {/* Crown bezel + screen */}
-        <CrownBezel>
-          <DeviceScreen />
-        </CrownBezel>
-
-        {/* Three round 3D dome buttons with A/B/C labels */}
-        <View style={styles.buttonRow}>
-          {([
-            { fn: onLeftPress, label: 'A', arcOffset: 0 },
-            { fn: onMiddlePress, label: 'B', arcOffset: 8 },
-            { fn: onRightPress, label: 'C', arcOffset: 0 },
-          ]).map(({ fn, label, arcOffset }, i) => (
-            <View key={i} style={[styles.buttonWrap, { marginTop: arcOffset }]}>
-              <Pressable
-                onPress={fn}
-                style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-              >
-                {/* Dome highlight */}
-                <View style={styles.btnShine} />
-              </Pressable>
-              <Text style={styles.btnLabel}>{label}</Text>
-            </View>
-          ))}
-        </View>
+    <View style={styles.container}>
+      {/* 1 ▸ Game screen – renders BEHIND the egg PNG */}
+      <View style={styles.screenPosition}>
+        <DeviceScreen />
       </View>
+
+      {/* 2 ▸ 3D egg PNG overlay – transparent screen hole lets game show through */}
+      <Image
+        source={eggSource}
+        style={styles.eggImage}
+        resizeMode="contain"
+      />
+
+      {/* 3 ▸ Invisible touch targets over the dome buttons */}
+      {buttons.map((btn, i) => (
+        <Pressable
+          key={i}
+          onPress={btnHandlers[i]}
+          style={[
+            styles.btnHit,
+            {
+              left: Math.round(btn.x * SCALE) - BTN_RADIUS,
+              top: Math.round(btn.y * SCALE) - BTN_RADIUS,
+            },
+          ]}
+        />
+      ))}
     </View>
   );
 };
 
-// Rounder egg — almost circular, slight taper at top
-const EGG_WIDTH = 340;
-const EGG_HEIGHT = 380;
-
-const eggBodyWebStyle = Platform.OS === 'web'
-  ? {
-      borderTopLeftRadius: '48% 52%' as any,
-      borderTopRightRadius: '48% 52%' as any,
-      borderBottomLeftRadius: '48% 48%' as any,
-      borderBottomRightRadius: '48% 48%' as any,
-    }
-  : {
-      borderTopLeftRadius: EGG_WIDTH * 0.48,
-      borderTopRightRadius: EGG_WIDTH * 0.48,
-      borderBottomLeftRadius: EGG_WIDTH * 0.46,
-      borderBottomRightRadius: EGG_WIDTH * 0.46,
-    };
-
-const silverCapWebStyle = Platform.OS === 'web'
-  ? { borderBottomLeftRadius: '50% 70%' as any, borderBottomRightRadius: '50% 70%' as any }
-  : { borderBottomLeftRadius: EGG_WIDTH * 0.5, borderBottomRightRadius: EGG_WIDTH * 0.5 };
-
-const sheenWebStyle = Platform.OS === 'web'
-  ? { borderRadius: '50%' as any } : { borderRadius: 100 };
-
-const glossBigWebStyle = Platform.OS === 'web'
-  ? { borderRadius: '50%' as any } : { borderRadius: 100 };
-
-const glossMedWebStyle = Platform.OS === 'web'
-  ? { borderRadius: '50%' as any } : { borderRadius: 80 };
-
-const edgeLeftWebStyle = Platform.OS === 'web'
-  ? { borderRadius: '50%' as any } : { borderRadius: 200 };
-
-const edgeRightWebStyle = Platform.OS === 'web'
-  ? { borderRadius: '50%' as any } : { borderRadius: 200 };
-
-const edgeBottomWebStyle = Platform.OS === 'web'
-  ? { borderRadius: '50%' as any } : { borderRadius: 200 };
-
 const styles = StyleSheet.create({
-  eggOuter: {
-    width: EGG_WIDTH + 60,
-    height: EGG_HEIGHT + 80,
-    alignItems: 'center',
-    justifyContent: 'center',
+  container: {
+    width: EGG_DISPLAY_W,
+    height: EGG_DISPLAY_H,
+    position: 'relative' as const,
   },
-  eggShadow: {
+  screenPosition: {
     position: 'absolute',
-    bottom: 4,
-    width: EGG_WIDTH * 0.65,
-    height: 30,
-    backgroundColor: 'rgba(80,60,40,0.15)',
-    borderRadius: 100,
-  },
-  eggBody: {
-    width: EGG_WIDTH,
-    height: EGG_HEIGHT,
-    backgroundColor: '#EFE9DE', // Warm eggshell
-    alignItems: 'center',
+    left: SCREEN_LEFT,
+    top: SCREEN_TOP,
+    width: SCREEN_W,
+    height: SCREEN_H,
+    zIndex: 0,
     overflow: 'hidden',
-    borderWidth: 2.5,
-    borderColor: '#CCC4B4',
-    // Strong outer shadow for 3D lift
-    shadowColor: '#4A3A2A',
-    shadowOffset: { width: 4, height: 10 },
-    shadowOpacity: 0.30,
-    shadowRadius: 20,
-    elevation: 16,
+    borderRadius: 6,
   },
-  // Edge darkening for 3D curvature
-  edgeLeft: {
+  eggImage: {
     position: 'absolute',
-    top: '10%',
-    left: -15,
-    width: 60,
-    height: '80%',
-    backgroundColor: 'rgba(0,0,0,0.06)',
-    zIndex: 0,
-  },
-  edgeRight: {
-    position: 'absolute',
-    top: '10%',
-    right: -15,
-    width: 60,
-    height: '80%',
-    backgroundColor: 'rgba(0,0,0,0.04)',
-    zIndex: 0,
-  },
-  edgeBottom: {
-    position: 'absolute',
-    bottom: -20,
-    left: '10%',
-    width: '80%',
-    height: 80,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    zIndex: 0,
-  },
-  speck: {
-    position: 'absolute',
-    backgroundColor: '#999',
-    borderRadius: 2,
+    top: 0,
+    left: 0,
+    width: EGG_DISPLAY_W,
+    height: EGG_DISPLAY_H,
     zIndex: 1,
+    pointerEvents: 'none' as any, // Let clicks pass through to buttons behind
   },
-  // Silver cap
-  silverCapWrap: {
+  btnHit: {
     position: 'absolute',
-    bottom: -2,
-    left: -3,
-    right: -3,
-    height: EGG_HEIGHT * 0.28,
+    width: BTN_RADIUS * 2,
+    height: BTN_RADIUS * 2,
+    borderRadius: BTN_RADIUS,
     zIndex: 2,
-  },
-  silverCap: {
-    flex: 1,
-    backgroundColor: '#C0BEC8',
-    overflow: 'hidden',
-  },
-  sheenPrimary: {
-    position: 'absolute',
-    bottom: 5,
-    right: 10,
-    width: '60%',
-    height: '55%',
-    backgroundColor: 'rgba(255,255,255,0.35)',
-    transform: [{ rotate: '10deg' }, { scaleY: 0.65 }],
-  },
-  sheenSecondary: {
-    position: 'absolute',
-    top: 5,
-    left: '15%',
-    width: '35%',
-    height: '35%',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 60,
-  },
-  jaggedRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: -1,
-  },
-  // 3D highlights
-  glossBig: {
-    position: 'absolute',
-    top: EGG_HEIGHT * 0.06,
-    right: 18,
-    width: EGG_WIDTH * 0.40,
-    height: EGG_HEIGHT * 0.24,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    transform: [{ rotate: '-15deg' }, { scaleY: 0.75 }],
-    zIndex: 3,
-  },
-  glossMed: {
-    position: 'absolute',
-    top: EGG_HEIGHT * 0.38,
-    left: 20,
-    width: EGG_WIDTH * 0.15,
-    height: EGG_HEIGHT * 0.10,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    transform: [{ rotate: '8deg' }],
-    zIndex: 3,
-  },
-  // Brand label
-  brandLabel: {
-    marginTop: 38,
-    fontSize: 21,
-    fontWeight: '900',
-    color: '#444',
-    letterSpacing: 5,
-    textShadowColor: 'rgba(255,255,255,0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
-    zIndex: 4,
-  },
-  // Crown bezel
-  crownOuter: {
-    marginTop: 8,
-    alignItems: 'center',
-    zIndex: 4,
-  },
-  crownRow: { flexDirection: 'row', justifyContent: 'center' },
-  crownCol: { justifyContent: 'center', gap: 1 },
-  crownMiddle: { flexDirection: 'row', alignItems: 'center' },
-  crownInner: {
-    backgroundColor: '#B8A5C8',
-    padding: 5,
-    borderRadius: 3,
-    // Inset shadow for depth
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  // 3D dome buttons
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    width: 184,
-    alignSelf: 'center',
-    marginTop: 14,
-    marginBottom: 20,
-    zIndex: 4,
-  },
-  button: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#D8C8A0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    // 3D dome shadow
-    shadowColor: '#5A4A30',
-    shadowOffset: { width: 1, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    elevation: 6,
-    borderWidth: 1.5,
-    borderTopColor: 'rgba(255,255,255,0.4)',
-    borderLeftColor: 'rgba(255,255,255,0.2)',
-    borderBottomColor: '#B8A880',
-    borderRightColor: '#C0B090',
-    overflow: 'hidden',
-  },
-  btnShine: {
-    position: 'absolute',
-    top: 2,
-    left: 4,
-    width: 13,
-    height: 7,
-    backgroundColor: 'rgba(255,255,255,0.45)',
-    borderRadius: 10,
-    transform: [{ scaleX: 1.2 }, { rotate: '-5deg' }],
-  },
-  buttonPressed: {
-    backgroundColor: '#B8A070',
-    shadowOpacity: 0.10,
-    shadowOffset: { width: 0, height: 1 },
-    transform: [{ scale: 0.9 }, { translateY: 2 }],
-  },
-  buttonWrap: {
-    alignItems: 'center',
-  },
-  btnLabel: {
-    marginTop: 3,
-    fontSize: 7,
-    fontWeight: '700',
-    color: '#999',
-    fontFamily: 'monospace',
-    letterSpacing: 1,
+    // Uncomment to debug: backgroundColor: 'rgba(255,0,0,0.3)',
   },
 });
 

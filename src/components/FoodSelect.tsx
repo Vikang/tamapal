@@ -21,7 +21,7 @@ const FoodSelect: React.FC = () => {
       <View style={styles.row}>
         {FOOD_OPTIONS.map((food, idx) => (
           <View key={food.id} style={[styles.foodItem, idx === foodIndex && styles.selected]}>
-            <PixelGrid data={FOOD_SPRITES[food.id]} pixelSize={6} />
+            <PixelGrid data={FOOD_SPRITES[food.id]} pixelSize={4} />
             <Text style={styles.foodName}>{food.name}</Text>
             <Text style={styles.foodStats}>+{food.hungerBoost} hun</Text>
           </View>

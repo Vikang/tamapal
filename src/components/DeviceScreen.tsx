@@ -37,7 +37,7 @@ const DeviceScreen: React.FC = () => {
 
             {/* Pet centered */}
             <View style={styles.petContainer}>
-              <PetSprite mood={currentMood} pixelSize={6} />
+              <PetSprite mood={currentMood} pixelSize={4} />
               {!isSleeping && deviceMode === 'home' && (
                 <ThoughtBubble stats={stats} />
               )}
@@ -56,14 +56,14 @@ const DeviceScreen: React.FC = () => {
   );
 };
 
-// Screen — nearly square, proportional to shell
-const SCREEN_WIDTH = 174;
-const SCREEN_HEIGHT = 162;
+// Screen sized to match the 3D egg's transparent cutout (245×245 @ 0.425 scale)
+const SCREEN_WIDTH = 184;
+const SCREEN_HEIGHT = 184;
 
 const styles = StyleSheet.create({
   screenOuter: {
-    width: SCREEN_WIDTH + 4,
-    height: SCREEN_HEIGHT + 4,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -71,16 +71,8 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
     backgroundColor: '#C8D8C0',
-    borderRadius: 10,
+    borderRadius: 6,
     overflow: 'hidden',
-    // Recessed screen look
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#9A9890',
   },
   screenContent: {
     flex: 1,
@@ -93,10 +85,10 @@ const styles = StyleSheet.create({
   },
   petContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 10,
     alignSelf: 'center',
     left: '50%',
-    marginLeft: -43,
+    marginLeft: -28,
   },
 });
 

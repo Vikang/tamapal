@@ -25,21 +25,40 @@ interface PetSpriteProps {
 // Animation config for sprite sheet mode — mapped from TamaWeb PetDefinition.js
 // Sprite sheet is a 4×4 grid (16 cells, 1-based numbering → 0-based row/col)
 // Cell N → row = floor((N-1)/4), col = (N-1) % 4
+// Animation mapping from Tamaweb PetDefinition.js (1-based cellNumber):
+// Cell N → row = floor((N-1)/4), col = (N-1) % 4
+//
+// Cell 1:  row:0,col:0 = idle
+// Cell 2:  row:0,col:1 = cheering/happy frame 1
+// Cell 3:  row:0,col:2 = cheering/happy frame 2
+// Cell 4:  row:0,col:3 = uncomfortable/sad frame 1
+// Cell 5:  row:1,col:0 = uncomfortable/sad frame 2
+// Cell 6:  row:1,col:1 = angry
+// Cell 7:  row:1,col:2 = shocked
+// Cell 8:  row:1,col:3 = blush
+// Cell 9:  row:2,col:0 = idle side
+// Cell 10: row:2,col:1 = moving frame 1
+// Cell 11: row:2,col:2 = moving frame 2
+// Cell 12: row:2,col:3 = side uncomfortable
+// Cell 13: row:3,col:0 = (unused / kissing)
+// Cell 14: row:3,col:1 = sitting / eating frame 1
+// Cell 15: row:3,col:2 = eating frame 2
+// Cell 16: row:3,col:3 = sleeping (single frame)
 const SPRITE_ANIMATION: Record<PetMood, { frames: SpriteFrame[]; speed: number }> = {
-  // idle: cells 1-2
-  idle:     { frames: [{row:0,col:0}, {row:0,col:1}],                         speed: 500 },
-  // eating: cells 7-8
-  eating:   { frames: [{row:1,col:2}, {row:1,col:3}],                         speed: 250 },
-  // bathing: cells 9-10 (sitting in tub)
-  bathing:  { frames: [{row:2,col:0}, {row:2,col:1}],                         speed: 400 },
-  // sleeping: cells 11-12 (eyes closed, lying down)
-  sleeping: { frames: [{row:2,col:2}, {row:2,col:3}],                         speed: 800 },
-  // happy/cheering: cells 3-4 (arms up, smiling)
-  happy:    { frames: [{row:0,col:2}, {row:0,col:3}],                         speed: 250 },
-  // uncomfortable/sad: cells 5-6
-  sad:      { frames: [{row:1,col:0}, {row:1,col:1}],                         speed: 500 },
-  // dirty → uncomfortable/sad: cells 5-6
-  dirty:    { frames: [{row:1,col:0}, {row:1,col:1}],                         speed: 600 },
+  // idle: cell 1 (single frame, reference uses pixelBreath for subtle animation)
+  idle:     { frames: [{row:0,col:0}],                                         speed: 500 },
+  // eating: cells 14-15 (sitting + eating mouth open)
+  eating:   { frames: [{row:3,col:1}, {row:3,col:2}],                         speed: 250 },
+  // bathing: use cheering animation cells 2-3 (reference has no bath-specific anim)
+  bathing:  { frames: [{row:0,col:1}, {row:0,col:2}],                         speed: 300 },
+  // sleeping: cell 16 (single frame — reference is static with Z particles)
+  sleeping: { frames: [{row:3,col:3}],                                         speed: 1000 },
+  // happy/cheering: cells 2-3
+  happy:    { frames: [{row:0,col:1}, {row:0,col:2}],                         speed: 250 },
+  // uncomfortable/sad: cells 4-5
+  sad:      { frames: [{row:0,col:3}, {row:1,col:0}],                         speed: 500 },
+  // dirty: same as uncomfortable cells 4-5
+  dirty:    { frames: [{row:0,col:3}, {row:1,col:0}],                         speed: 600 },
 };
 
 // Fallback pixel-art animation frames (original system)
@@ -92,7 +111,7 @@ const PetSprite: React.FC<PetSpriteProps> = ({ mood, pixelSize = 7 }) => {
           frameHeight={16}
           columns={4}
           rows={4}
-          scale={3}
+          scale={2}
           animationFrames={config.frames}
           animationSpeed={config.speed}
         />

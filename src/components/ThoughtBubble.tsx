@@ -39,7 +39,7 @@ const ThoughtBubble: React.FC<ThoughtBubbleProps> = ({ stats }) => {
   return (
     <View style={styles.container}>
       <View style={styles.bubble}>
-        <PixelGrid data={icon} pixelSize={4} />
+        <PixelGrid data={icon} pixelSize={3} />
       </View>
       <View style={styles.dotLarge} />
       <View style={styles.dotSmall} />
