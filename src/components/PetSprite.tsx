@@ -28,18 +28,18 @@ interface PetSpriteProps {
 const SPRITE_ANIMATION: Record<PetMood, { frames: SpriteFrame[]; speed: number }> = {
   // idle: cells 1-2
   idle:     { frames: [{row:0,col:0}, {row:0,col:1}],                         speed: 500 },
-  // eating: cells 14-16
-  eating:   { frames: [{row:3,col:1}, {row:3,col:2}, {row:3,col:3}],          speed: 250 },
-  // bathing → happy/cheering animation: cells 10-11
-  bathing:  { frames: [{row:2,col:1}, {row:2,col:2}],                         speed: 200 },
-  // sleeping/sitting: cells 14-15
-  sleeping: { frames: [{row:3,col:1}, {row:3,col:2}],                         speed: 300 },
-  // happy/cheering: cells 10-11
-  happy:    { frames: [{row:2,col:1}, {row:2,col:2}],                         speed: 200 },
-  // uncomfortable/sad: cells 4-6
-  sad:      { frames: [{row:0,col:3}, {row:1,col:0}, {row:1,col:1}],          speed: 500 },
-  // dirty → uncomfortable/sad animation: cells 4-6
-  dirty:    { frames: [{row:0,col:3}, {row:1,col:0}, {row:1,col:1}],          speed: 500 },
+  // eating: cells 7-8
+  eating:   { frames: [{row:1,col:2}, {row:1,col:3}],                         speed: 250 },
+  // bathing: cells 9-10 (sitting in tub)
+  bathing:  { frames: [{row:2,col:0}, {row:2,col:1}],                         speed: 400 },
+  // sleeping: cells 11-12 (eyes closed, lying down)
+  sleeping: { frames: [{row:2,col:2}, {row:2,col:3}],                         speed: 800 },
+  // happy/cheering: cells 3-4 (arms up, smiling)
+  happy:    { frames: [{row:0,col:2}, {row:0,col:3}],                         speed: 250 },
+  // uncomfortable/sad: cells 5-6
+  sad:      { frames: [{row:1,col:0}, {row:1,col:1}],                         speed: 500 },
+  // dirty → uncomfortable/sad: cells 5-6
+  dirty:    { frames: [{row:1,col:0}, {row:1,col:1}],                         speed: 600 },
 };
 
 // Fallback pixel-art animation frames (original system)
