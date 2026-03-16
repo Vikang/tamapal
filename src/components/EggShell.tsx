@@ -105,7 +105,7 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
 };
 
 const EGG_WIDTH = 360;
-const EGG_HEIGHT = 530;
+const EGG_HEIGHT = 430;
 
 const styles = StyleSheet.create({
   eggOuter: {
@@ -128,8 +128,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0EDE5',
     borderTopLeftRadius: EGG_WIDTH * 0.48,
     borderTopRightRadius: EGG_WIDTH * 0.48,
-    borderBottomLeftRadius: EGG_WIDTH * 0.42,
-    borderBottomRightRadius: EGG_WIDTH * 0.42,
+    borderBottomLeftRadius: EGG_WIDTH * 0.48,
+    borderBottomRightRadius: EGG_WIDTH * 0.48,
     overflow: 'hidden',
     alignItems: 'center',
     // Outer edge
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   // Screen recessed area
   screenArea: {
-    marginTop: 60,
+    marginTop: 45,
     backgroundColor: '#B8C8B0',
     borderRadius: 11,
     padding: 5,
@@ -202,13 +202,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 32,
-    gap: 24,
+    marginTop: 18,
+    gap: 14,
   },
   button: {
-    width: 59,
-    height: 43,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     // 3D button effect
@@ -226,9 +226,9 @@ const styles = StyleSheet.create({
   buttonMiddle: {
     backgroundColor: '#D4C4A8',
     borderColor: '#B8A888',
-    width: 64,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   buttonRight: {
     backgroundColor: '#A8C8D4',

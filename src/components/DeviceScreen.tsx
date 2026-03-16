@@ -99,15 +99,15 @@ const ZigzagBezel: React.FC = () => {
 
 const styles = StyleSheet.create({
   screenOuter: {
-    width: 240,
-    height: 213,
+    width: 234,
+    height: 195,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   screenInner: {
-    width: 210,
-    height: 184,
+    width: 200,
+    height: 168,
     backgroundColor: '#C8D8C0',
     borderRadius: 5,
     overflow: 'hidden',
