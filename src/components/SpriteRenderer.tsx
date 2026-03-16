@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Image, StyleSheet, ImageSourcePropType } from 'react-native';
 
+/** A single animation frame identified by row and column in the sprite sheet */
+export interface SpriteFrame {
+  row: number;
+  col: number;
+}
+
 interface SpriteRendererProps {
   /** Image source — require('./path.png') or { uri: '...' } */
   spriteSheet: ImageSourcePropType;
@@ -8,7 +14,7 @@ interface SpriteRendererProps {
   frameWidth?: number;
   /** Height of a single frame in the sheet (px) */
   frameHeight?: number;
-  /** Which row of the sheet to display (0-indexed) */
+  /** Which row of the sheet to display (0-indexed) — used when animationFrames is column-only */
   row?: number;
   /** Which column of the sheet to display (0-indexed) */
   col?: number;
@@ -18,8 +24,8 @@ interface SpriteRendererProps {
   columns?: number;
   /** Total rows in the sprite sheet */
   rows?: number;
-  /** Array of column indices to cycle through for animation */
-  animationFrames?: number[];
+  /** Array of column indices OR {row,col} objects to cycle through for animation */
+  animationFrames?: number[] | SpriteFrame[];
   /** Milliseconds per animation frame */
   animationSpeed?: number;
   /** Optional style override for the container */
@@ -42,10 +48,22 @@ const SpriteRenderer: React.FC<SpriteRendererProps> = ({
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Determine which column to actually render
-  const activeCol = animationFrames
-    ? animationFrames[currentFrameIndex % animationFrames.length]
-    : col;
+  // Determine which row/col to render based on current animation frame
+  let activeRow = row;
+  let activeCol = col;
+
+  if (animationFrames && animationFrames.length > 0) {
+    const frame = animationFrames[currentFrameIndex % animationFrames.length];
+    if (typeof frame === 'number') {
+      // Legacy: array of column indices, use the provided row
+      activeCol = frame;
+      activeRow = row;
+    } else {
+      // New: {row, col} objects for cross-row animations
+      activeRow = frame.row;
+      activeCol = frame.col;
+    }
+  }
 
   useEffect(() => {
     if (!animationFrames || animationFrames.length <= 1) return;
@@ -67,7 +85,7 @@ const SpriteRenderer: React.FC<SpriteRendererProps> = ({
 
   // Offset to show the correct frame
   const offsetX = -activeCol * displayWidth;
-  const offsetY = -row * displayHeight;
+  const offsetY = -activeRow * displayHeight;
 
   return (
     <View
