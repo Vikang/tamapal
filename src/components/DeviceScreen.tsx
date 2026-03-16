@@ -23,8 +23,6 @@ const DeviceScreen: React.FC = () => {
 
   return (
     <View style={styles.screenOuter}>
-      {/* Zigzag border effect via triangular clip simulation */}
-      <ZigzagBezel />
       <View style={styles.screenInner}>
         {/* Screen content */}
         <View style={styles.screenContent}>
@@ -54,71 +52,31 @@ const DeviceScreen: React.FC = () => {
   );
 };
 
-// Zigzag/crown-shaped bezel around the screen
-const ZigzagBezel: React.FC = () => {
-  const points = 10;
-  const toothSize = 6;
-
-  return (
-    <>
-      {/* Top zigzag */}
-      <View style={styles.zigzagRow}>
-        {Array.from({ length: points }, (_, i) => (
-          <View key={`t${i}`} style={[styles.zigzagTooth, styles.zigzagToothUp, {
-            borderBottomColor: i < points / 2 ? '#C8C8C8' : '#B89CC8',
-          }]} />
-        ))}
-      </View>
-      {/* Bottom zigzag */}
-      <View style={[styles.zigzagRow, styles.zigzagRowBottom]}>
-        {Array.from({ length: points }, (_, i) => (
-          <View key={`b${i}`} style={[styles.zigzagTooth, styles.zigzagToothDown, {
-            borderTopColor: i < points / 2 ? '#B89CC8' : '#C8C8C8',
-          }]} />
-        ))}
-      </View>
-      {/* Left zigzag */}
-      <View style={styles.zigzagColLeft}>
-        {Array.from({ length: 8 }, (_, i) => (
-          <View key={`l${i}`} style={[styles.zigzagToothLeft, {
-            borderRightColor: i < 4 ? '#C8C8C8' : '#D4C4A8',
-          }]} />
-        ))}
-      </View>
-      {/* Right zigzag */}
-      <View style={styles.zigzagColRight}>
-        {Array.from({ length: 8 }, (_, i) => (
-          <View key={`r${i}`} style={[styles.zigzagToothRight, {
-            borderLeftColor: i < 4 ? '#D4C4A8' : '#B89CC8',
-          }]} />
-        ))}
-      </View>
-    </>
-  );
-};
+// Screen — nearly square, proportional to shell
+const SCREEN_WIDTH = 174;
+const SCREEN_HEIGHT = 162;
 
 const styles = StyleSheet.create({
   screenOuter: {
-    width: 234,
-    height: 195,
+    width: SCREEN_WIDTH + 4,
+    height: SCREEN_HEIGHT + 4,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
   },
   screenInner: {
-    width: 200,
-    height: 168,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
     backgroundColor: '#C8D8C0',
-    borderRadius: 5,
+    borderRadius: 10,
     overflow: 'hidden',
-    // Inner shadow for recessed look
+    // Recessed screen look
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 7,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
     borderWidth: 1,
-    borderColor: '#999',
+    borderColor: '#9A9890',
   },
   screenContent: {
     flex: 1,
@@ -131,76 +89,10 @@ const styles = StyleSheet.create({
   },
   petContainer: {
     position: 'absolute',
-    bottom: 27,
+    bottom: 20,
     alignSelf: 'center',
     left: '50%',
     marginLeft: -43,
-  },
-  // Zigzag styles
-  zigzagRow: {
-    position: 'absolute',
-    top: 0,
-    left: 13,
-    right: 13,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  zigzagRowBottom: {
-    top: undefined,
-    bottom: 0,
-  },
-  zigzagTooth: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 9,
-    borderRightWidth: 9,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-  },
-  zigzagToothUp: {
-    borderBottomWidth: 8,
-    borderBottomColor: '#C8C8C8',
-  },
-  zigzagToothDown: {
-    borderTopWidth: 8,
-    borderTopColor: '#B89CC8',
-  },
-  zigzagColLeft: {
-    position: 'absolute',
-    left: 0,
-    top: 13,
-    bottom: 13,
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  zigzagColRight: {
-    position: 'absolute',
-    right: 0,
-    top: 13,
-    bottom: 13,
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  zigzagToothLeft: {
-    width: 0,
-    height: 0,
-    borderTopWidth: 8,
-    borderBottomWidth: 8,
-    borderRightWidth: 8,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderRightColor: '#C8C8C8',
-  },
-  zigzagToothRight: {
-    width: 0,
-    height: 0,
-    borderTopWidth: 8,
-    borderBottomWidth: 8,
-    borderLeftWidth: 8,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: '#D4C4A8',
   },
 });
 
