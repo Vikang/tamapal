@@ -21,7 +21,7 @@ const FoodSelect: React.FC = () => {
       <View style={styles.row}>
         {FOOD_OPTIONS.map((food, idx) => (
           <View key={food.id} style={[styles.foodItem, idx === foodIndex && styles.selected]}>
-            <PixelGrid data={FOOD_SPRITES[food.id]} pixelSize={4} />
+            <PixelGrid data={FOOD_SPRITES[food.id]} pixelSize={6} />
             <Text style={styles.foodName}>{food.name}</Text>
             <Text style={styles.foodStats}>+{food.hungerBoost} hun</Text>
           </View>
@@ -34,21 +34,21 @@ const FoodSelect: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 4,
-    left: 4,
-    right: 4,
+    bottom: 5,
+    left: 5,
+    right: 5,
     backgroundColor: 'rgba(240,237,229,0.95)',
-    borderRadius: 8,
-    padding: 6,
+    borderRadius: 11,
+    padding: 8,
     borderWidth: 1,
     borderColor: '#C8C0B0',
   },
   title: {
-    fontSize: 8,
+    fontSize: 11,
     fontWeight: '700',
     color: '#555',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 5,
     fontFamily: 'monospace',
   },
   row: {
@@ -57,8 +57,8 @@ const styles = StyleSheet.create({
   },
   foodItem: {
     alignItems: 'center',
-    padding: 4,
-    borderRadius: 6,
+    padding: 5,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'transparent',
   },
@@ -67,14 +67,14 @@ const styles = StyleSheet.create({
     borderColor: '#C4B08A',
   },
   foodName: {
-    fontSize: 7,
+    fontSize: 9,
     fontWeight: '600',
     color: '#555',
-    marginTop: 2,
+    marginTop: 3,
     fontFamily: 'monospace',
   },
   foodStats: {
-    fontSize: 6,
+    fontSize: 8,
     color: '#888',
     fontFamily: 'monospace',
   },

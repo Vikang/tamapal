@@ -7,7 +7,7 @@ interface PixelGridProps {
   pixelSize?: number;
 }
 
-const PixelGrid: React.FC<PixelGridProps> = memo(({ data, pixelSize = 4 }) => {
+const PixelGrid: React.FC<PixelGridProps> = memo(({ data, pixelSize = 6 }) => {
   return (
     <View style={styles.container}>
       {data.map((row, rowIdx) => (

@@ -38,16 +38,16 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
   },
   statContainer: {
     flex: 1,
     alignItems: 'center',
   },
   statLabel: {
-    fontSize: 7,
+    fontSize: 9,
     fontWeight: '700',
     color: '#444',
     marginBottom: 1,
@@ -55,16 +55,16 @@ const styles = StyleSheet.create({
   },
   barOuter: {
     width: '100%',
-    height: 4,
+    height: 5,
     backgroundColor: '#D5D0C8',
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: 'hidden',
     borderWidth: 0.5,
     borderColor: '#AAA',
   },
   barInner: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: 3,
   },
 });
 

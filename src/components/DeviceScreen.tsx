@@ -37,7 +37,7 @@ const DeviceScreen: React.FC = () => {
 
             {/* Pet centered */}
             <View style={styles.petContainer}>
-              <PetSprite mood={currentMood} pixelSize={4} />
+              <PetSprite mood={currentMood} pixelSize={6} />
               {!isSleeping && deviceMode === 'home' && (
                 <ThoughtBubble stats={stats} />
               )}
@@ -99,24 +99,24 @@ const ZigzagBezel: React.FC = () => {
 
 const styles = StyleSheet.create({
   screenOuter: {
-    width: 180,
-    height: 160,
+    width: 240,
+    height: 213,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   screenInner: {
-    width: 158,
-    height: 138,
+    width: 210,
+    height: 184,
     backgroundColor: '#C8D8C0',
-    borderRadius: 4,
+    borderRadius: 5,
     overflow: 'hidden',
     // Inner shadow for recessed look
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowRadius: 5,
+    elevation: 7,
     borderWidth: 1,
     borderColor: '#999',
   },
@@ -131,17 +131,17 @@ const styles = StyleSheet.create({
   },
   petContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 27,
     alignSelf: 'center',
     left: '50%',
-    marginLeft: -32,
+    marginLeft: -43,
   },
   // Zigzag styles
   zigzagRow: {
     position: 'absolute',
     top: 0,
-    left: 10,
-    right: 10,
+    left: 13,
+    right: 13,
     flexDirection: 'row',
     justifyContent: 'center',
     zIndex: 1,
@@ -153,41 +153,41 @@ const styles = StyleSheet.create({
   zigzagTooth: {
     width: 0,
     height: 0,
-    borderLeftWidth: 7,
-    borderRightWidth: 7,
+    borderLeftWidth: 9,
+    borderRightWidth: 9,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
   },
   zigzagToothUp: {
-    borderBottomWidth: 6,
+    borderBottomWidth: 8,
     borderBottomColor: '#C8C8C8',
   },
   zigzagToothDown: {
-    borderTopWidth: 6,
+    borderTopWidth: 8,
     borderTopColor: '#B89CC8',
   },
   zigzagColLeft: {
     position: 'absolute',
     left: 0,
-    top: 10,
-    bottom: 10,
+    top: 13,
+    bottom: 13,
     justifyContent: 'center',
     zIndex: 1,
   },
   zigzagColRight: {
     position: 'absolute',
     right: 0,
-    top: 10,
-    bottom: 10,
+    top: 13,
+    bottom: 13,
     justifyContent: 'center',
     zIndex: 1,
   },
   zigzagToothLeft: {
     width: 0,
     height: 0,
-    borderTopWidth: 6,
-    borderBottomWidth: 6,
-    borderRightWidth: 6,
+    borderTopWidth: 8,
+    borderBottomWidth: 8,
+    borderRightWidth: 8,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
     borderRightColor: '#C8C8C8',
@@ -195,9 +195,9 @@ const styles = StyleSheet.create({
   zigzagToothRight: {
     width: 0,
     height: 0,
-    borderTopWidth: 6,
-    borderBottomWidth: 6,
-    borderLeftWidth: 6,
+    borderTopWidth: 8,
+    borderBottomWidth: 8,
+    borderLeftWidth: 8,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
     borderLeftColor: '#D4C4A8',

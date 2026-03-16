@@ -28,7 +28,7 @@ const Room: React.FC<RoomProps> = ({ isDimmed = false }) => {
 
   return (
     <View style={styles.container}>
-      <PixelGrid data={ROOM_MAP[timeOfDay]} pixelSize={3} />
+      <PixelGrid data={ROOM_MAP[timeOfDay]} pixelSize={4} />
       {isDimmed && <View style={styles.dimOverlay} />}
     </View>
   );

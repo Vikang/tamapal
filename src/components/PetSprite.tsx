@@ -37,7 +37,7 @@ const FRAME_DURATIONS: Record<PetMood, number> = {
   dirty: 600,
 };
 
-const PetSprite: React.FC<PetSpriteProps> = ({ mood, pixelSize = 5 }) => {
+const PetSprite: React.FC<PetSpriteProps> = ({ mood, pixelSize = 7 }) => {
   const [frameIndex, setFrameIndex] = useState(0);
   const frames = ANIMATION_FRAMES[mood];
   const duration = FRAME_DURATIONS[mood];

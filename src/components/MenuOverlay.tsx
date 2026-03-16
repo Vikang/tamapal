@@ -39,22 +39,22 @@ const MenuOverlay: React.FC<MenuOverlayProps> = ({ mode }) => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 4,
+    bottom: 5,
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-evenly',
-    paddingHorizontal: 4,
-    paddingVertical: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 4,
     backgroundColor: 'rgba(240,237,229,0.92)',
     borderTopWidth: 1,
     borderTopColor: '#C8C0B0',
   },
   menuItem: {
     alignItems: 'center',
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 8,
   },
   menuItemSelected: {
     backgroundColor: 'rgba(200, 176, 138, 0.4)',
@@ -62,10 +62,10 @@ const styles = StyleSheet.create({
     borderColor: '#C4B08A',
   },
   menuIcon: {
-    fontSize: 14,
+    fontSize: 19,
   },
   menuLabel: {
-    fontSize: 7,
+    fontSize: 9,
     fontWeight: '600',
     color: '#888',
     fontFamily: 'monospace',
