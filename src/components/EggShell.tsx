@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Pressable, Text, StyleSheet, Platform } from 'react-native';
 import DeviceScreen from './DeviceScreen';
 
@@ -66,6 +66,37 @@ const CrownBezel: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRightPress }) => {
+  // Keyboard support for web
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case 'a':
+        case 'A':
+        case 'ArrowLeft':
+          e.preventDefault();
+          onLeftPress();
+          break;
+        case 's':
+        case 'S':
+        case 'ArrowDown':
+          e.preventDefault();
+          onMiddlePress();
+          break;
+        case 'd':
+        case 'D':
+        case 'ArrowRight':
+          e.preventDefault();
+          onRightPress();
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onLeftPress, onMiddlePress, onRightPress]);
+
   return (
     <View style={styles.eggOuter}>
       {/* Soft elliptical shadow */}
@@ -351,9 +382,9 @@ const styles = StyleSheet.create({
     zIndex: 4,
   },
   button: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#D8C8A0',
     justifyContent: 'center',
     alignItems: 'center',
@@ -381,9 +412,10 @@ const styles = StyleSheet.create({
     transform: [{ scaleX: 1.2 }, { rotate: '-5deg' }],
   },
   buttonPressed: {
-    backgroundColor: '#C8B890',
-    shadowOpacity: 0.15,
-    transform: [{ translateY: 2 }],
+    backgroundColor: '#B8A070',
+    shadowOpacity: 0.10,
+    shadowOffset: { width: 0, height: 1 },
+    transform: [{ scale: 0.9 }, { translateY: 2 }],
   },
 });
 
