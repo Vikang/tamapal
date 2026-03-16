@@ -16,9 +16,10 @@ const ROOM_BACKGROUNDS: Record<TimeOfDay, ImageSourcePropType> = {
 
 interface RoomProps {
   isDimmed?: boolean;
+  isSleeping?: boolean;
 }
 
-const Room: React.FC<RoomProps> = ({ isDimmed = false }) => {
+const Room: React.FC<RoomProps> = ({ isDimmed = false, isSleeping = false }) => {
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(getTimeOfDay());
 
   useEffect(() => {
@@ -28,14 +29,24 @@ const Room: React.FC<RoomProps> = ({ isDimmed = false }) => {
     return () => clearInterval(interval);
   }, []);
 
+  // Force night background when sleeping, otherwise use actual time of day
+  const background = isSleeping ? roomNight : ROOM_BACKGROUNDS[timeOfDay];
+
   return (
     <View style={styles.container}>
       <Image
-        source={ROOM_BACKGROUNDS[timeOfDay]}
+        source={background}
         style={[styles.backgroundImage, { imageRendering: 'pixelated' } as any]}
         resizeMode="cover"
       />
-      {isDimmed && <View style={styles.dimOverlay} />}
+      {(isDimmed || isSleeping) && (
+        <View
+          style={[
+            styles.dimOverlay,
+            isSleeping && styles.sleepOverlay,
+          ]}
+        />
+      )}
     </View>
   );
 };
@@ -56,6 +67,9 @@ const styles = StyleSheet.create({
   dimOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,20,0.45)',
+  },
+  sleepOverlay: {
+    backgroundColor: 'rgba(0,0,20,0.75)',
   },
 });
 

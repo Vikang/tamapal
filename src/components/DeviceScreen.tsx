@@ -7,6 +7,7 @@ import ThoughtBubble from './ThoughtBubble';
 import MenuOverlay from './MenuOverlay';
 import FoodSelect from './FoodSelect';
 import StatsScreen from './StatsScreen';
+import SleepParticles from './SleepParticles';
 import { usePetStore } from '../store/petStore';
 
 const DeviceScreen: React.FC = () => {
@@ -16,9 +17,10 @@ const DeviceScreen: React.FC = () => {
   const isSleeping = usePetStore(s => s.isSleeping);
   const computeMood = usePetStore(s => s.computeMood);
 
-  const currentMood = deviceMode === 'feeding' ? 'eating'
+  // isSleeping is the authoritative flag — check it first
+  const currentMood = isSleeping ? 'sleeping'
+    : deviceMode === 'feeding' ? 'eating'
     : deviceMode === 'bathing' ? 'bathing'
-    : deviceMode === 'sleeping' ? 'sleeping'
     : computeMood();
 
   return (
@@ -26,12 +28,12 @@ const DeviceScreen: React.FC = () => {
       <View style={styles.screenInner}>
         {/* Screen content */}
         <View style={styles.screenContent}>
-          {/* Status bar at top */}
-          <StatusBar stats={stats} />
+          {/* Status bar at top — hidden during sleep */}
+          {!isSleeping && <StatusBar stats={stats} />}
 
           {/* Main area */}
           <View style={styles.mainArea}>
-            <Room isDimmed={isSleeping} />
+            <Room isDimmed={isSleeping} isSleeping={isSleeping} />
 
             {/* Pet centered */}
             <View style={styles.petContainer}>
@@ -39,13 +41,15 @@ const DeviceScreen: React.FC = () => {
               {!isSleeping && deviceMode === 'home' && (
                 <ThoughtBubble stats={stats} />
               )}
+              {/* Floating Z particles during sleep */}
+              {isSleeping && <SleepParticles />}
             </View>
           </View>
 
-          {/* Overlays */}
-          {deviceMode === 'menu' && <MenuOverlay mode={deviceMode} />}
-          {deviceMode === 'feeding' && <FoodSelect />}
-          {deviceMode === 'stats' && <StatsScreen />}
+          {/* Overlays — none shown during sleep */}
+          {!isSleeping && deviceMode === 'menu' && <MenuOverlay mode={deviceMode} />}
+          {!isSleeping && deviceMode === 'feeding' && <FoodSelect />}
+          {!isSleeping && deviceMode === 'stats' && <StatsScreen />}
         </View>
       </View>
     </View>

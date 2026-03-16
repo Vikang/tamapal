@@ -38,45 +38,33 @@ export default function App() {
     };
   }, [loadState, tickDecay]);
 
-  // Left button: navigate left in menus, or go back
+  // Button A (Left) — SELECT/SCROLL: cycles forward through options
   const handleLeft = useCallback(() => {
     triggerHaptic('light');
 
     switch (deviceMode) {
+      case 'home':
+        // Open the menu
+        setMenuIndex(0);
+        setDeviceMode('menu');
+        break;
       case 'menu':
-        setMenuIndex((menuIndex - 1 + MENU_ACTIONS.length) % MENU_ACTIONS.length);
-        break;
-      case 'feeding':
-        setFoodIndex((foodIndex - 1 + FOOD_OPTIONS.length) % FOOD_OPTIONS.length);
-        break;
-      case 'stats':
-        setDeviceMode('home');
-        break;
-      default:
-        break;
-    }
-  }, [deviceMode, menuIndex, foodIndex, setMenuIndex, setFoodIndex, setDeviceMode]);
-
-  // Right button: navigate right in menus
-  const handleRight = useCallback(() => {
-    triggerHaptic('light');
-
-    switch (deviceMode) {
-      case 'menu':
+        // Cycle menu index forward (wrapping)
         setMenuIndex((menuIndex + 1) % MENU_ACTIONS.length);
         break;
       case 'feeding':
+        // Cycle food index forward (wrapping)
         setFoodIndex((foodIndex + 1) % FOOD_OPTIONS.length);
         break;
-      case 'stats':
-        setDeviceMode('home');
+      case 'sleeping':
+        wakeUp();
         break;
       default:
         break;
     }
-  }, [deviceMode, menuIndex, foodIndex, setMenuIndex, setFoodIndex, setDeviceMode]);
+  }, [deviceMode, menuIndex, foodIndex, setMenuIndex, setFoodIndex, setDeviceMode, wakeUp]);
 
-  // Middle button: confirm / open menu / wake up
+  // Button B (Middle) — EXECUTE/CONFIRM: confirms the highlighted selection
   const handleMiddle = useCallback(() => {
     triggerHaptic('medium');
 
@@ -126,6 +114,36 @@ export default function App() {
         break;
     }
   }, [deviceMode, menuIndex, foodIndex, isSleeping, setDeviceMode, setMenuIndex, setFoodIndex, feed, bathe, startSleep, wakeUp]);
+
+  // Button C (Right) — CANCEL/BACK: cancels current action, returns to previous screen
+  const handleRight = useCallback(() => {
+    triggerHaptic('light');
+
+    switch (deviceMode) {
+      case 'home':
+        // Already at home, do nothing
+        break;
+      case 'menu':
+        // Cancel back to home
+        setDeviceMode('home');
+        break;
+      case 'feeding':
+        // Cancel back to menu
+        setDeviceMode('menu');
+        break;
+      case 'sleeping':
+        wakeUp();
+        break;
+      case 'stats':
+        setDeviceMode('home');
+        break;
+      case 'bathing':
+        setDeviceMode('home');
+        break;
+      default:
+        break;
+    }
+  }, [deviceMode, setDeviceMode, wakeUp]);
 
   return (
     <View style={styles.container}>

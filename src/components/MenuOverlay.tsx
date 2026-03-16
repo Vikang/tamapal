@@ -26,6 +26,7 @@ const MenuOverlay: React.FC<MenuOverlayProps> = ({ mode }) => {
           key={item.id}
           style={[styles.menuItem, idx === menuIndex && styles.menuItemSelected]}
         >
+          {idx === menuIndex && <Text style={styles.cursor}>▶</Text>}
           <Text style={styles.menuIcon}>{item.icon}</Text>
           <Text style={[styles.menuLabel, idx === menuIndex && styles.menuLabelSelected]}>
             {item.label}
@@ -60,6 +61,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(200, 176, 138, 0.4)',
     borderWidth: 1,
     borderColor: '#C4B08A',
+  },
+  cursor: {
+    fontSize: 7,
+    color: '#444',
+    fontFamily: 'monospace',
+    position: 'absolute',
+    top: 2,
+    left: -1,
   },
   menuIcon: {
     fontSize: 19,

@@ -54,6 +54,7 @@ export const usePetStore = create<PetState>((set, get) => ({
   isSleeping: false,
 
   feed: (foodId: FoodItem) => {
+    if (get().isSleeping) return; // Can't feed while sleeping
     const food = FOOD_OPTIONS.find(f => f.id === foodId);
     if (!food) return;
     set(state => ({
@@ -64,13 +65,16 @@ export const usePetStore = create<PetState>((set, get) => ({
       },
       mood: 'eating',
     }));
-    // Return to idle after animation
+    // Return to idle after animation (only if not sleeping)
     setTimeout(() => {
-      set({ mood: get().computeMood() });
+      if (!get().isSleeping) {
+        set({ mood: get().computeMood() });
+      }
     }, 2000);
   },
 
   bathe: () => {
+    if (get().isSleeping) return; // Can't bathe while sleeping
     set(state => ({
       stats: {
         ...state.stats,
@@ -79,7 +83,9 @@ export const usePetStore = create<PetState>((set, get) => ({
       mood: 'bathing',
     }));
     setTimeout(() => {
-      set({ mood: get().computeMood() });
+      if (!get().isSleeping) {
+        set({ mood: get().computeMood() });
+      }
     }, 3000);
   },
 
@@ -91,7 +97,12 @@ export const usePetStore = create<PetState>((set, get) => ({
     set(state => ({ isSleeping: false, mood: state.computeMood(), deviceMode: 'home' }));
   },
 
-  setDeviceMode: (mode) => set({ deviceMode: mode }),
+  setDeviceMode: (mode) => {
+    // Never override deviceMode while sleeping — isSleeping is the authority
+    const { isSleeping } = get();
+    if (isSleeping && mode !== 'sleeping') return;
+    set({ deviceMode: mode });
+  },
   setMenuIndex: (idx) => set({ menuIndex: idx }),
   setFoodIndex: (idx) => set({ foodIndex: idx }),
 

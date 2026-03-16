@@ -72,21 +72,27 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
 
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
+        // Button A (Left) — SELECT/SCROLL
         case 'a':
         case 'A':
         case 'ArrowLeft':
           e.preventDefault();
           onLeftPress();
           break;
+        // Button B (Middle) — EXECUTE/CONFIRM
         case 's':
         case 'S':
         case 'ArrowDown':
+        case 'Enter':
+        case ' ':
           e.preventDefault();
           onMiddlePress();
           break;
+        // Button C (Right) — CANCEL/BACK
         case 'd':
         case 'D':
         case 'ArrowRight':
+        case 'Escape':
           e.preventDefault();
           onRightPress();
           break;
@@ -159,17 +165,23 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
           <DeviceScreen />
         </CrownBezel>
 
-        {/* Three round 3D dome buttons */}
+        {/* Three round 3D dome buttons with A/B/C labels */}
         <View style={styles.buttonRow}>
-          {[onLeftPress, onMiddlePress, onRightPress].map((fn, i) => (
-            <Pressable
-              key={i}
-              onPress={fn}
-              style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-            >
-              {/* Dome highlight */}
-              <View style={styles.btnShine} />
-            </Pressable>
+          {([
+            { fn: onLeftPress, label: 'A', arcOffset: 0 },
+            { fn: onMiddlePress, label: 'B', arcOffset: 8 },
+            { fn: onRightPress, label: 'C', arcOffset: 0 },
+          ]).map(({ fn, label, arcOffset }, i) => (
+            <View key={i} style={[styles.buttonWrap, { marginTop: arcOffset }]}>
+              <Pressable
+                onPress={fn}
+                style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+              >
+                {/* Dome highlight */}
+                <View style={styles.btnShine} />
+              </Pressable>
+              <Text style={styles.btnLabel}>{label}</Text>
+            </View>
           ))}
         </View>
       </View>
@@ -177,22 +189,22 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
   );
 };
 
-// Fat, round egg — wider bottom, narrower top
-const EGG_WIDTH = 320;
-const EGG_HEIGHT = 420;
+// Rounder egg — almost circular, slight taper at top
+const EGG_WIDTH = 340;
+const EGG_HEIGHT = 380;
 
 const eggBodyWebStyle = Platform.OS === 'web'
   ? {
-      borderTopLeftRadius: '50% 60%' as any,
-      borderTopRightRadius: '50% 60%' as any,
-      borderBottomLeftRadius: '50% 40%' as any,
-      borderBottomRightRadius: '50% 40%' as any,
+      borderTopLeftRadius: '48% 52%' as any,
+      borderTopRightRadius: '48% 52%' as any,
+      borderBottomLeftRadius: '48% 48%' as any,
+      borderBottomRightRadius: '48% 48%' as any,
     }
   : {
-      borderTopLeftRadius: EGG_WIDTH * 0.50,
-      borderTopRightRadius: EGG_WIDTH * 0.50,
-      borderBottomLeftRadius: EGG_WIDTH * 0.45,
-      borderBottomRightRadius: EGG_WIDTH * 0.45,
+      borderTopLeftRadius: EGG_WIDTH * 0.48,
+      borderTopRightRadius: EGG_WIDTH * 0.48,
+      borderBottomLeftRadius: EGG_WIDTH * 0.46,
+      borderBottomRightRadius: EGG_WIDTH * 0.46,
     };
 
 const silverCapWebStyle = Platform.OS === 'web'
@@ -227,7 +239,7 @@ const styles = StyleSheet.create({
   eggShadow: {
     position: 'absolute',
     bottom: 4,
-    width: EGG_WIDTH * 0.6,
+    width: EGG_WIDTH * 0.65,
     height: 30,
     backgroundColor: 'rgba(80,60,40,0.15)',
     borderRadius: 100,
@@ -374,17 +386,18 @@ const styles = StyleSheet.create({
   // 3D dome buttons
   buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 30,
-    marginBottom: 30,
-    gap: 10,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    width: 184,
+    alignSelf: 'center',
+    marginTop: 14,
+    marginBottom: 20,
     zIndex: 4,
   },
   button: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#D8C8A0',
     justifyContent: 'center',
     alignItems: 'center',
@@ -403,10 +416,10 @@ const styles = StyleSheet.create({
   },
   btnShine: {
     position: 'absolute',
-    top: 3,
-    left: 5,
-    width: 18,
-    height: 10,
+    top: 2,
+    left: 4,
+    width: 13,
+    height: 7,
     backgroundColor: 'rgba(255,255,255,0.45)',
     borderRadius: 10,
     transform: [{ scaleX: 1.2 }, { rotate: '-5deg' }],
@@ -416,6 +429,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.10,
     shadowOffset: { width: 0, height: 1 },
     transform: [{ scale: 0.9 }, { translateY: 2 }],
+  },
+  buttonWrap: {
+    alignItems: 'center',
+  },
+  btnLabel: {
+    marginTop: 3,
+    fontSize: 7,
+    fontWeight: '700',
+    color: '#999',
+    fontFamily: 'monospace',
+    letterSpacing: 1,
   },
 });
 
