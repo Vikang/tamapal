@@ -13,8 +13,8 @@ import {
   dirtyFrame1, dirtyFrame2,
 } from '../data/petSprites';
 
-// Character sprite sheet from TamaWeb (128x128 → 4x4 grid of 32x32 cells)
-const characterSprite = require('../assets/sprites/chara_133b.png');
+// Baby character sprite sheet from TamaWeb (64x64 → 4x4 grid of 16x16 cells)
+const characterSprite = require('../assets/sprites/chara_1b.png');
 
 interface PetSpriteProps {
   mood: PetMood;
@@ -80,12 +80,12 @@ const PetSprite: React.FC<PetSpriteProps> = ({ mood, pixelSize = 7 }) => {
       <View style={styles.container}>
         <SpriteRenderer
           spriteSheet={characterSprite}
-          frameWidth={32}
-          frameHeight={32}
+          frameWidth={16}
+          frameHeight={16}
           columns={4}
           rows={4}
           row={config.row}
-          scale={3}
+          scale={6}
           animationFrames={config.frames}
           animationSpeed={config.speed}
         />
