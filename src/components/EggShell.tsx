@@ -111,9 +111,6 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleLeft, handleMiddle, handleRight]);
 
-  // Select the correct egg frame based on pressed state (always fallback to rest)
-  const eggSource = (pressedButton && EGG_FRAMES[pressedButton]) || EGG_REST;
-
   return (
     <View style={styles.container}>
       {/* 1 ▸ Game screen – renders BEHIND the egg PNG */}
@@ -121,10 +118,25 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
         <DeviceScreen />
       </View>
 
-      {/* 2 ▸ 3D egg PNG overlay – transparent screen hole lets game show through */}
+      {/* 2 ▸ All egg frames pre-rendered, toggle via opacity (no flash on swap) */}
       <Image
-        source={eggSource}
-        style={styles.eggImage}
+        source={EGG_REST}
+        style={[styles.eggImage, { opacity: pressedButton ? 0 : 1 }]}
+        resizeMode="contain"
+      />
+      <Image
+        source={EGG_LEFT_PRESSED}
+        style={[styles.eggImage, { opacity: pressedButton === 'left' ? 1 : 0 }]}
+        resizeMode="contain"
+      />
+      <Image
+        source={EGG_MIDDLE_PRESSED}
+        style={[styles.eggImage, { opacity: pressedButton === 'middle' ? 1 : 0 }]}
+        resizeMode="contain"
+      />
+      <Image
+        source={EGG_RIGHT_PRESSED}
+        style={[styles.eggImage, { opacity: pressedButton === 'right' ? 1 : 0 }]}
         resizeMode="contain"
       />
 
