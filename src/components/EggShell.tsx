@@ -16,8 +16,7 @@ const CrownBezel: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const hCount = 8;
   const vCount = 5;
 
-  const color = (idx: number, total: number) => {
-    const t = total > 1 ? idx / (total - 1) : 0.5;
+  const colorAt = (t: number) => {
     // Silver (#D0CCD8) → Lavender (#B098C0)
     const r = Math.round(208 + (176 - 208) * t);
     const g = Math.round(204 + (152 - 204) * t);
@@ -25,8 +24,7 @@ const CrownBezel: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return `rgb(${r},${g},${b})`;
   };
 
-  const tri = (dir: 'up' | 'down' | 'left' | 'right', idx: number, total: number) => {
-    const c = color(idx, total);
+  const tri = (dir: 'up' | 'down' | 'left' | 'right', idx: number, c: string) => {
     const hw = triH / 2 + 3;
     const s: any = {
       width: 0, height: 0,
@@ -40,24 +38,28 @@ const CrownBezel: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return <View key={`${dir}-${idx}`} style={s} />;
   };
 
+  // FIX 3: Gradient direction — top row = silver (t=0), bottom row = lavender (t=1)
+  // Top row triangles: t≈0 (silver)
+  // Side triangles: t goes 0→1 top-to-bottom
+  // Bottom row triangles: t≈1 (lavender)
   return (
     <View style={styles.crownOuter}>
       <View style={styles.crownRow}>
-        {Array.from({ length: hCount }, (_, i) => tri('up', i, hCount))}
+        {Array.from({ length: hCount }, (_, i) => tri('up', i, colorAt(0)))}
       </View>
       <View style={styles.crownMiddle}>
         <View style={styles.crownCol}>
-          {Array.from({ length: vCount }, (_, i) => tri('left', i, vCount))}
+          {Array.from({ length: vCount }, (_, i) => tri('left', i, colorAt(vCount > 1 ? i / (vCount - 1) : 0.5)))}
         </View>
         <View style={styles.crownInner}>
           {children}
         </View>
         <View style={styles.crownCol}>
-          {Array.from({ length: vCount }, (_, i) => tri('right', i, vCount))}
+          {Array.from({ length: vCount }, (_, i) => tri('right', i, colorAt(vCount > 1 ? i / (vCount - 1) : 0.5)))}
         </View>
       </View>
       <View style={styles.crownRow}>
-        {Array.from({ length: hCount }, (_, i) => tri('down', i, hCount))}
+        {Array.from({ length: hCount }, (_, i) => tri('down', i, colorAt(1)))}
       </View>
     </View>
   );
@@ -91,25 +93,25 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
           />
         ))}
 
-        {/* Silver cap — top portion */}
+        {/* Silver cap — bottom portion */}
         <View style={styles.silverCapWrap}>
-          <View style={[styles.silverCap, silverCapWebStyle]}>
-            {/* Primary metallic sheen */}
-            <View style={[styles.sheenPrimary, sheenWebStyle]} />
-            {/* Secondary soft glow */}
-            <View style={styles.sheenSecondary} />
-          </View>
-          {/* Jagged bottom edge */}
+          {/* Jagged top edge */}
           <View style={styles.jaggedRow}>
             {Array.from({ length: 18 }, (_, i) => (
               <View key={`j-${i}`} style={{
                 width: 0, height: 0,
                 borderLeftWidth: 9, borderRightWidth: 9,
-                borderTopWidth: 6 + (i % 3) * 3,
+                borderBottomWidth: 6 + (i % 3) * 3,
                 borderLeftColor: 'transparent', borderRightColor: 'transparent',
-                borderTopColor: i % 2 === 0 ? '#C4C2CC' : '#BBB9C6',
+                borderBottomColor: i % 2 === 0 ? '#C4C2CC' : '#BBB9C6',
               }} />
             ))}
+          </View>
+          <View style={[styles.silverCap, silverCapWebStyle]}>
+            {/* Primary metallic sheen */}
+            <View style={[styles.sheenPrimary, sheenWebStyle]} />
+            {/* Secondary soft glow */}
+            <View style={styles.sheenSecondary} />
           </View>
         </View>
 
@@ -163,8 +165,8 @@ const eggBodyWebStyle = Platform.OS === 'web'
     };
 
 const silverCapWebStyle = Platform.OS === 'web'
-  ? { borderTopLeftRadius: '50% 70%' as any, borderTopRightRadius: '50% 70%' as any }
-  : { borderTopLeftRadius: EGG_WIDTH * 0.5, borderTopRightRadius: EGG_WIDTH * 0.5 };
+  ? { borderBottomLeftRadius: '50% 70%' as any, borderBottomRightRadius: '50% 70%' as any }
+  : { borderBottomLeftRadius: EGG_WIDTH * 0.5, borderBottomRightRadius: EGG_WIDTH * 0.5 };
 
 const sheenWebStyle = Platform.OS === 'web'
   ? { borderRadius: '50%' as any } : { borderRadius: 100 };
@@ -251,7 +253,7 @@ const styles = StyleSheet.create({
   // Silver cap
   silverCapWrap: {
     position: 'absolute',
-    top: -2,
+    bottom: -2,
     left: -3,
     right: -3,
     height: EGG_HEIGHT * 0.28,
@@ -264,16 +266,16 @@ const styles = StyleSheet.create({
   },
   sheenPrimary: {
     position: 'absolute',
-    top: 5,
+    bottom: 5,
     right: 10,
     width: '60%',
     height: '55%',
     backgroundColor: 'rgba(255,255,255,0.35)',
-    transform: [{ rotate: '-10deg' }, { scaleY: 0.65 }],
+    transform: [{ rotate: '10deg' }, { scaleY: 0.65 }],
   },
   sheenSecondary: {
     position: 'absolute',
-    bottom: 5,
+    top: 5,
     left: '15%',
     width: '35%',
     height: '35%',
@@ -308,7 +310,7 @@ const styles = StyleSheet.create({
   },
   // Brand label
   brandLabel: {
-    marginTop: EGG_HEIGHT * 0.28 + 2,
+    marginTop: 18,
     fontSize: 21,
     fontWeight: '900',
     color: '#444',
@@ -320,7 +322,7 @@ const styles = StyleSheet.create({
   },
   // Crown bezel
   crownOuter: {
-    marginTop: 4,
+    marginTop: 8,
     alignItems: 'center',
     zIndex: 4,
   },
