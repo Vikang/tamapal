@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   },
   // Brand label
   brandLabel: {
-    marginTop: 18,
+    marginTop: 38,
     fontSize: 21,
     fontWeight: '900',
     color: '#444',
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 18,
+    marginTop: 30,
     marginBottom: 30,
     gap: 10,
     zIndex: 4,
