@@ -146,20 +146,20 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
 
 // Fat, round egg — wider bottom, narrower top
 const EGG_WIDTH = 320;
-const EGG_HEIGHT = 385;
+const EGG_HEIGHT = 420;
 
 const eggBodyWebStyle = Platform.OS === 'web'
   ? {
-      borderTopLeftRadius: '45% 35%' as any,
-      borderTopRightRadius: '45% 35%' as any,
-      borderBottomLeftRadius: '50% 65%' as any,
-      borderBottomRightRadius: '50% 65%' as any,
+      borderTopLeftRadius: '50% 60%' as any,
+      borderTopRightRadius: '50% 60%' as any,
+      borderBottomLeftRadius: '50% 40%' as any,
+      borderBottomRightRadius: '50% 40%' as any,
     }
   : {
-      borderTopLeftRadius: EGG_WIDTH * 0.42,
-      borderTopRightRadius: EGG_WIDTH * 0.42,
-      borderBottomLeftRadius: EGG_WIDTH * 0.50,
-      borderBottomRightRadius: EGG_WIDTH * 0.50,
+      borderTopLeftRadius: EGG_WIDTH * 0.50,
+      borderTopRightRadius: EGG_WIDTH * 0.50,
+      borderBottomLeftRadius: EGG_WIDTH * 0.45,
+      borderBottomRightRadius: EGG_WIDTH * 0.45,
     };
 
 const silverCapWebStyle = Platform.OS === 'web'
@@ -187,7 +187,7 @@ const edgeBottomWebStyle = Platform.OS === 'web'
 const styles = StyleSheet.create({
   eggOuter: {
     width: EGG_WIDTH + 60,
-    height: EGG_HEIGHT + 70,
+    height: EGG_HEIGHT + 80,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -343,7 +343,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 18,
+    marginBottom: 30,
     gap: 10,
     zIndex: 4,
   },
