@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import EggShell from './src/components/EggShell';
@@ -9,6 +9,8 @@ import { triggerHaptic } from './src/utils/haptics';
 const MENU_ACTIONS = ['feed', 'bathe', 'sleep', 'stats'] as const;
 
 export default function App() {
+  const [isInspectMode, setIsInspectMode] = useState(false);
+  const decayTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const deviceMode = usePetStore(s => s.deviceMode);
   const menuIndex = usePetStore(s => s.menuIndex);
   const foodIndex = usePetStore(s => s.foodIndex);
@@ -30,13 +32,33 @@ export default function App() {
     startAutoSave();
 
     // Decay tick every second
-    const decayTimer = setInterval(tickDecay, 1000);
+    decayTimerRef.current = setInterval(tickDecay, 1000);
 
     return () => {
-      clearInterval(decayTimer);
+      if (decayTimerRef.current) clearInterval(decayTimerRef.current);
       stopAutoSave();
     };
   }, [loadState, tickDecay]);
+
+  // Pause/resume decay timer when entering/exiting inspect mode
+  const toggleInspectMode = useCallback(() => {
+    setIsInspectMode(prev => {
+      const enteringInspect = !prev;
+      if (enteringInspect) {
+        // Pause decay
+        if (decayTimerRef.current) {
+          clearInterval(decayTimerRef.current);
+          decayTimerRef.current = null;
+        }
+      } else {
+        // Resume decay
+        if (!decayTimerRef.current) {
+          decayTimerRef.current = setInterval(tickDecay, 1000);
+        }
+      }
+      return enteringInspect;
+    });
+  }, [tickDecay]);
 
   // Button A (Left) — SELECT/SCROLL: cycles forward through options
   const handleLeft = useCallback(() => {
@@ -151,6 +173,8 @@ export default function App() {
         onLeftPress={handleLeft}
         onMiddlePress={handleMiddle}
         onRightPress={handleRight}
+        isInspectMode={isInspectMode}
+        onToggleInspect={toggleInspectMode}
       />
       <StatusBar style="light" />
     </View>

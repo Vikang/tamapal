@@ -1,13 +1,18 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Pressable, Image, StyleSheet, Platform, ImageSourcePropType } from 'react-native';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { View, Pressable, Image, StyleSheet, Platform, ImageSourcePropType, Text, TouchableOpacity } from 'react-native';
 import DeviceScreen from './DeviceScreen';
 import { playButtonClick } from '../utils/sound';
 import { triggerHaptic } from '../utils/haptics';
+
+// Lazy load InspectView — Three.js won't be imported until inspect is toggled
+const InspectView = React.lazy(() => import('./InspectView'));
 
 interface EggShellProps {
   onLeftPress: () => void;
   onMiddlePress: () => void;
   onRightPress: () => void;
+  isInspectMode: boolean;
+  onToggleInspect: () => void;
 }
 
 // ── Preload all egg frame images ──────────────────────────────────
@@ -55,7 +60,7 @@ type ButtonId = 'left' | 'middle' | 'right';
 
 const PRESS_DURATION_MS = 150;
 
-const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRightPress }) => {
+const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRightPress, isInspectMode, onToggleInspect }) => {
   const [pressedButton, setPressedButton] = useState<ButtonId | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -97,6 +102,16 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
     if (Platform.OS !== 'web') return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // 'i' toggles inspect mode
+      if (e.key === 'i' || e.key === 'I') {
+        e.preventDefault();
+        onToggleInspect();
+        return;
+      }
+
+      // Don't handle game keys in inspect mode
+      if (isInspectMode) return;
+
       switch (e.key) {
         case 'a': case 'A': case 'ArrowLeft':
           e.preventDefault(); handleLeft(); break;
@@ -109,60 +124,112 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleLeft, handleMiddle, handleRight]);
+  }, [handleLeft, handleMiddle, handleRight, isInspectMode, onToggleInspect]);
 
   return (
-    <View style={styles.container}>
-      {/* 1 ▸ Game screen – renders BEHIND the egg PNG */}
-      <View style={styles.screenPosition}>
-        <DeviceScreen />
+    <View style={styles.outerWrapper}>
+      <View style={styles.container}>
+        {isInspectMode ? (
+          /* ── Inspect Mode: 3D rotatable view ── */
+          <Suspense fallback={
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading 3D...</Text>
+            </View>
+          }>
+            <InspectView />
+          </Suspense>
+        ) : (
+          /* ── Play Mode: existing PNG system (unchanged) ── */
+          <>
+            {/* 1 ▸ Game screen – renders BEHIND the egg PNG */}
+            <View style={styles.screenPosition}>
+              <DeviceScreen />
+            </View>
+
+            {/* 2 ▸ All egg frames pre-rendered, toggle via opacity (no flash on swap) */}
+            <Image
+              source={EGG_REST}
+              style={[styles.eggImage, { opacity: pressedButton ? 0 : 1 }]}
+              resizeMode="contain"
+            />
+            <Image
+              source={EGG_LEFT_PRESSED}
+              style={[styles.eggImage, { opacity: pressedButton === 'left' ? 1 : 0 }]}
+              resizeMode="contain"
+            />
+            <Image
+              source={EGG_MIDDLE_PRESSED}
+              style={[styles.eggImage, { opacity: pressedButton === 'middle' ? 1 : 0 }]}
+              resizeMode="contain"
+            />
+            <Image
+              source={EGG_RIGHT_PRESSED}
+              style={[styles.eggImage, { opacity: pressedButton === 'right' ? 1 : 0 }]}
+              resizeMode="contain"
+            />
+
+            {/* 3 ▸ Invisible touch targets over the dome buttons */}
+            {buttons.map((btn, i) => (
+              <Pressable
+                key={i}
+                onPress={btnHandlers[i]}
+                style={[
+                  styles.btnHit,
+                  {
+                    left: Math.round(btn.x * SCALE) - BTN_RADIUS,
+                    top: Math.round(btn.y * SCALE) - BTN_RADIUS,
+                  },
+                ]}
+              />
+            ))}
+          </>
+        )}
       </View>
 
-      {/* 2 ▸ All egg frames pre-rendered, toggle via opacity (no flash on swap) */}
-      <Image
-        source={EGG_REST}
-        style={[styles.eggImage, { opacity: pressedButton ? 0 : 1 }]}
-        resizeMode="contain"
-      />
-      <Image
-        source={EGG_LEFT_PRESSED}
-        style={[styles.eggImage, { opacity: pressedButton === 'left' ? 1 : 0 }]}
-        resizeMode="contain"
-      />
-      <Image
-        source={EGG_MIDDLE_PRESSED}
-        style={[styles.eggImage, { opacity: pressedButton === 'middle' ? 1 : 0 }]}
-        resizeMode="contain"
-      />
-      <Image
-        source={EGG_RIGHT_PRESSED}
-        style={[styles.eggImage, { opacity: pressedButton === 'right' ? 1 : 0 }]}
-        resizeMode="contain"
-      />
-
-      {/* 3 ▸ Invisible touch targets over the dome buttons */}
-      {buttons.map((btn, i) => (
-        <Pressable
-          key={i}
-          onPress={btnHandlers[i]}
-          style={[
-            styles.btnHit,
-            {
-              left: Math.round(btn.x * SCALE) - BTN_RADIUS,
-              top: Math.round(btn.y * SCALE) - BTN_RADIUS,
-            },
-          ]}
-        />
-      ))}
+      {/* ── Toggle button below the egg ── */}
+      <TouchableOpacity
+        onPress={onToggleInspect}
+        style={styles.toggleButton}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.toggleText}>
+          {isInspectMode ? '🎮 Play' : '🔍 Inspect'}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  outerWrapper: {
+    alignItems: 'center',
+  },
   container: {
     width: EGG_DISPLAY_W,
     height: EGG_DISPLAY_H,
     position: 'relative' as const,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#8B7355',
+    fontWeight: '500',
+  },
+  toggleButton: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(139, 115, 85, 0.15)',
+  },
+  toggleText: {
+    fontSize: 13,
+    color: '#8B7355',
+    fontWeight: '500',
   },
   screenPosition: {
     position: 'absolute',
