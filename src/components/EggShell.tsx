@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet, Platform } from 'react-native';
 import DeviceScreen from './DeviceScreen';
 
 interface EggShellProps {
@@ -36,7 +36,7 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
       <View style={styles.eggShadow} />
 
       {/* Main egg body */}
-      <View style={styles.eggBody}>
+      <View style={[styles.eggBody, eggBodyWebStyle]}>
         {/* 3D gradient layers */}
         <View style={styles.gradientHighlight} />
         <View style={styles.gradientEdgeLeft} />
@@ -104,8 +104,24 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
   );
 };
 
-const EGG_WIDTH = 360;
-const EGG_HEIGHT = 430;
+const EGG_WIDTH = 320;
+const EGG_HEIGHT = 440;
+
+// Egg shape: narrower top (tighter curve), wider bottom (flatter curve)
+// For web we use percentage-based radii for true egg asymmetry
+const eggBodyWebStyle = Platform.OS === 'web' ? {
+  // react-native-web maps these to CSS border-*-*-radius
+  // Each value is "horizontal vertical" — using percentages for egg curves
+  borderTopLeftRadius: '50% 70%' as any,
+  borderTopRightRadius: '50% 70%' as any,
+  borderBottomLeftRadius: '50% 30%' as any,
+  borderBottomRightRadius: '50% 30%' as any,
+} : {
+  borderTopLeftRadius: EGG_WIDTH * 0.46,
+  borderTopRightRadius: EGG_WIDTH * 0.46,
+  borderBottomLeftRadius: EGG_WIDTH * 0.50,
+  borderBottomRightRadius: EGG_WIDTH * 0.50,
+};
 
 const styles = StyleSheet.create({
   eggOuter: {
@@ -117,8 +133,8 @@ const styles = StyleSheet.create({
   eggShadow: {
     position: 'absolute',
     bottom: 0,
-    width: EGG_WIDTH * 0.7,
-    height: 27,
+    width: EGG_WIDTH * 0.6,
+    height: 22,
     backgroundColor: 'rgba(0,0,0,0.12)',
     borderRadius: 133,
   },
@@ -126,10 +142,6 @@ const styles = StyleSheet.create({
     width: EGG_WIDTH,
     height: EGG_HEIGHT,
     backgroundColor: '#F0EDE5',
-    borderTopLeftRadius: EGG_WIDTH * 0.48,
-    borderTopRightRadius: EGG_WIDTH * 0.48,
-    borderBottomLeftRadius: EGG_WIDTH * 0.48,
-    borderBottomRightRadius: EGG_WIDTH * 0.48,
     overflow: 'hidden',
     alignItems: 'center',
     // Outer edge
@@ -145,11 +157,11 @@ const styles = StyleSheet.create({
   // 3D gradient highlight (top-left light source)
   gradientHighlight: {
     position: 'absolute',
-    top: -27,
-    left: -27,
-    width: EGG_WIDTH * 0.7,
-    height: EGG_HEIGHT * 0.5,
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    top: -30,
+    left: -30,
+    width: EGG_WIDTH * 0.65,
+    height: EGG_HEIGHT * 0.45,
+    backgroundColor: 'rgba(255,255,255,0.30)',
     borderRadius: EGG_WIDTH,
     transform: [{ rotate: '-15deg' }],
   },
@@ -184,7 +196,7 @@ const styles = StyleSheet.create({
   },
   // Screen recessed area
   screenArea: {
-    marginTop: 45,
+    marginTop: 70,
     backgroundColor: '#B8C8B0',
     borderRadius: 11,
     padding: 5,
@@ -202,20 +214,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 18,
-    gap: 14,
+    marginTop: 20,
+    gap: 10,
   },
   button: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: 'center',
     alignItems: 'center',
     // 3D button effect
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 5,
     borderWidth: 2,
   },
@@ -226,9 +238,9 @@ const styles = StyleSheet.create({
   buttonMiddle: {
     backgroundColor: '#D4C4A8',
     borderColor: '#B8A888',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
   },
   buttonRight: {
     backgroundColor: '#A8C8D4',
