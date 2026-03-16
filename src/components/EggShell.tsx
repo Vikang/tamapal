@@ -74,11 +74,14 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
     // 2. Swap to pressed frame
     setPressedButton(buttonId);
 
-    // 3. After 150ms, reset image and call the action handler
+    // 3. After 150ms, reset image then call the action handler
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       setPressedButton(null);
-      handler();
+      // Small delay before handler so the image reset renders first
+      requestAnimationFrame(() => {
+        handler();
+      });
       timeoutRef.current = null;
     }, PRESS_DURATION_MS);
   }, []);
@@ -108,8 +111,8 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleLeft, handleMiddle, handleRight]);
 
-  // Select the correct egg frame based on pressed state
-  const eggSource = pressedButton ? EGG_FRAMES[pressedButton] : EGG_REST;
+  // Select the correct egg frame based on pressed state (always fallback to rest)
+  const eggSource = (pressedButton && EGG_FRAMES[pressedButton]) || EGG_REST;
 
   return (
     <View style={styles.container}>
