@@ -143,6 +143,42 @@ function useLCDTexture() {
   return textureRef;
 }
 
+// ── Test Pattern Texture ──────────────────────────────────────────
+// Creates a very obvious test pattern to verify the texture pipeline
+function createTestPatternTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d')!;
+
+  // Bright green background
+  ctx.fillStyle = '#00FF00';
+  ctx.fillRect(0, 0, 256, 256);
+
+  // Red rectangle top-left
+  ctx.fillStyle = '#FF0000';
+  ctx.fillRect(10, 10, 60, 60);
+
+  // Blue rectangle bottom-right
+  ctx.fillStyle = '#0000FF';
+  ctx.fillRect(186, 186, 60, 60);
+
+  // Large black text "HELLO" centered
+  ctx.fillStyle = '#000000';
+  ctx.font = 'bold 48px Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('HELLO', 128, 128);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.flipY = true;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
 // ── 3D Model Component (inside Canvas) ───────────────────────────
 interface TamaModelProps {
   isInspectMode: boolean;
@@ -159,40 +195,127 @@ function TamaModel({ isInspectMode, animToPlay, onAnimDone, lcdTextureRef }: Tam
 
   const gltf = useGLTF(glbUrl);
   const { actions } = useAnimations(gltf.animations, gltf.scene);
-  const lcdMaterialRef = useRef<any>(null);
+  const screenPlaneRef = useRef<THREE.Mesh | null>(null);
+  const testTextureRef = useRef<THREE.CanvasTexture | null>(null);
 
-  // Find LCD material and immediately apply texture
+  // Find the screen mesh, hide it, and create a replacement plane with proper UVs
   useEffect(() => {
+    let screenMesh: THREE.Mesh | null = null;
+
+    // Find the screen mesh by name or material
     gltf.scene.traverse((child: any) => {
-      if (child.isMesh && child.material) {
-        const materials = Array.isArray(child.material) ? child.material : [child.material];
-        materials.forEach((mat: any) => {
-          if (mat.name && mat.name.includes('LCD')) {
-            // CRITICAL: Set color to white so texture shows through
-            mat.color = new THREE.Color(0xffffff);
-            mat.emissive = new THREE.Color(0x000000);
-            lcdMaterialRef.current = mat;
-            // Apply texture IMMEDIATELY if available
-            if (lcdTextureRef.current) {
-              mat.map = lcdTextureRef.current;
-              mat.needsUpdate = true;
-              // Texture applied
-            }
-          }
-        });
+      if (!child.isMesh) return;
+      // Match by mesh name or material name
+      if (child.name === 'Sphere068_2' ||
+          (child.material && (
+            (Array.isArray(child.material) && child.material.some((m: any) => m.name?.includes('LCD'))) ||
+            (!Array.isArray(child.material) && child.material.name?.includes('LCD'))
+          ))) {
+        screenMesh = child as THREE.Mesh;
       }
     });
-  }, [gltf, lcdTextureRef]);
 
-  // Keep texture updated each frame — use BOTH map and emissiveMap for best visibility
+    if (!screenMesh) {
+      console.error('[LCD] Could not find screen mesh (Sphere068_2 / LCD_UI.031)');
+      return;
+    }
+
+    console.log('[LCD] Found screen mesh:', (screenMesh as any).name);
+
+    // Get bounding box of the original screen mesh
+    const bbox = new THREE.Box3().setFromObject(screenMesh);
+    const center = new THREE.Vector3();
+    const size = new THREE.Vector3();
+    bbox.getCenter(center);
+    bbox.getSize(size);
+
+    console.log('[LCD] Screen bbox center:', center, 'size:', size);
+
+    // Hide the original mesh
+    (screenMesh as THREE.Mesh).visible = false;
+
+    // Create test pattern texture
+    const testTexture = createTestPatternTexture();
+    testTextureRef.current = testTexture;
+
+    // Create a replacement plane with proper UVs
+    // Use the bounding box dimensions — the screen is roughly rectangular
+    // Use the largest two dimensions for width/height
+    const dims = [size.x, size.y, size.z].sort((a, b) => b - a);
+    const planeW = dims[0] * 1.0;  // Width
+    const planeH = dims[1] * 1.0;  // Height
+
+    const planeGeo = new THREE.PlaneGeometry(planeW, planeH);
+    const planeMat = new THREE.MeshBasicMaterial({
+      map: testTexture,
+      side: THREE.DoubleSide,
+      toneMapped: false, // Prevent tone mapping from dimming colors
+    });
+
+    const plane = new THREE.Mesh(planeGeo, planeMat);
+
+    // Convert center to the parent's local space
+    const parent = (screenMesh as THREE.Mesh).parent;
+    if (parent) {
+      // center is in world space, convert to parent's local space
+      const localCenter = parent.worldToLocal(center.clone());
+      plane.position.copy(localCenter);
+    } else {
+      plane.position.copy(center);
+    }
+
+    // Determine the plane's orientation based on the thinnest dimension
+    // The thinnest dimension is the "depth" axis — the plane should face that direction
+    const sizeArr = [
+      { axis: 'x', val: size.x },
+      { axis: 'y', val: size.y },
+      { axis: 'z', val: size.z },
+    ].sort((a, b) => a.val - b.val);
+    const thinAxis = sizeArr[0].axis;
+
+    // Orient the plane to face the thin axis
+    if (thinAxis === 'z') {
+      // Default PlaneGeometry faces +Z, so no rotation needed
+      // But push it slightly forward to avoid z-fighting
+      plane.position.z = center.z + size.z * 0.5 + 0.001;
+    } else if (thinAxis === 'x') {
+      plane.rotation.y = Math.PI / 2;
+      plane.position.x = center.x + size.x * 0.5 + 0.001;
+    } else if (thinAxis === 'y') {
+      plane.rotation.x = Math.PI / 2;
+      plane.position.y = center.y + size.y * 0.5 + 0.001;
+    }
+
+    plane.name = 'LCD_ReplacementPlane';
+
+    // Add to the parent (or scene root)
+    if (parent) {
+      parent.add(plane);
+    } else {
+      gltf.scene.add(plane);
+    }
+
+    screenPlaneRef.current = plane;
+    console.log('[LCD] Replacement plane created and added. Dims:', planeW, 'x', planeH);
+
+    return () => {
+      // Cleanup
+      if (plane.parent) plane.parent.remove(plane);
+      planeGeo.dispose();
+      planeMat.dispose();
+      testTexture.dispose();
+    };
+  }, [gltf]);
+
+  // Update the plane's texture from the LCD capture when available
   useFrame(() => {
-    if (lcdMaterialRef.current && lcdTextureRef.current) {
-      const mat = lcdMaterialRef.current;
-      mat.map = lcdTextureRef.current;
-      mat.emissiveMap = lcdTextureRef.current;
-      mat.emissive = new THREE.Color(0xffffff); // Full emissive so LCD glows like a real screen
-      mat.emissiveIntensity = 0.8;
-      mat.color.setHex(0xffffff);
+    if (screenPlaneRef.current && lcdTextureRef.current) {
+      const mat = screenPlaneRef.current.material as THREE.MeshBasicMaterial;
+      // Switch from test pattern to live LCD capture
+      if (mat.map !== lcdTextureRef.current) {
+        mat.map = lcdTextureRef.current;
+        mat.needsUpdate = true;
+      }
       lcdTextureRef.current.needsUpdate = true;
     }
   });
@@ -210,7 +333,6 @@ function TamaModel({ isInspectMode, animToPlay, onAnimDone, lcdTextureRef }: Tam
       const onFinished = () => {
         onAnimDone();
       };
-      // Listen for animation finished
       const mixer = action.getMixer();
       mixer.addEventListener('finished', onFinished);
       return () => {
