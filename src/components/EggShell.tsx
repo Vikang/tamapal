@@ -150,14 +150,14 @@ const EGG_HEIGHT = 385;
 
 const eggBodyWebStyle = Platform.OS === 'web'
   ? {
-      borderTopLeftRadius: '47% 42%' as any,
-      borderTopRightRadius: '47% 42%' as any,
-      borderBottomLeftRadius: '50% 58%' as any,
-      borderBottomRightRadius: '50% 58%' as any,
+      borderTopLeftRadius: '45% 35%' as any,
+      borderTopRightRadius: '45% 35%' as any,
+      borderBottomLeftRadius: '50% 65%' as any,
+      borderBottomRightRadius: '50% 65%' as any,
     }
   : {
-      borderTopLeftRadius: EGG_WIDTH * 0.47,
-      borderTopRightRadius: EGG_WIDTH * 0.47,
+      borderTopLeftRadius: EGG_WIDTH * 0.42,
+      borderTopRightRadius: EGG_WIDTH * 0.42,
       borderBottomLeftRadius: EGG_WIDTH * 0.50,
       borderBottomRightRadius: EGG_WIDTH * 0.50,
     };
