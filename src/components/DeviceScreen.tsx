@@ -56,20 +56,16 @@ const DeviceScreen: React.FC = () => {
   );
 };
 
-// Screen sized to match the 3D egg's transparent cutout (245×245 @ 0.425 scale)
-const SCREEN_WIDTH = 184;
-const SCREEN_HEIGHT = 184;
-
 const styles = StyleSheet.create({
   screenOuter: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    width: '100%' as any,
+    height: '100%' as any,
     alignItems: 'center',
     justifyContent: 'center',
   },
   screenInner: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    width: '100%' as any,
+    height: '100%' as any,
     backgroundColor: '#C8D8C0',
     borderRadius: 6,
     overflow: 'hidden',

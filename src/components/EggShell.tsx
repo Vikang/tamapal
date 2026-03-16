@@ -1,11 +1,11 @@
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { View, Pressable, Image, StyleSheet, Platform, ImageSourcePropType, Text, TouchableOpacity } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Pressable, StyleSheet, Platform, Text, TouchableOpacity } from 'react-native';
 import DeviceScreen from './DeviceScreen';
 import { playButtonClick } from '../utils/sound';
 import { triggerHaptic } from '../utils/haptics';
 
-// Lazy load InspectView — Three.js won't be imported until inspect is toggled
-const InspectView = React.lazy(() => import('./InspectView'));
+// GLB asset — Expo bundler resolves this to a URL on web
+const GLB_ASSET = require('../assets/tamagotchi.glb');
 
 interface EggShellProps {
   onLeftPress: () => void;
@@ -15,94 +15,185 @@ interface EggShellProps {
   onToggleInspect: () => void;
 }
 
-// ── Preload all egg frame images ──────────────────────────────────
-const EGG_REST = require('../assets/egg-rest.png');
-const EGG_LEFT_PRESSED = require('../assets/egg-left-pressed.png');
-const EGG_MIDDLE_PRESSED = require('../assets/egg-middle-pressed.png');
-const EGG_RIGHT_PRESSED = require('../assets/egg-right-pressed.png');
-
-const EGG_FRAMES: Record<string, ImageSourcePropType> = {
-  left: EGG_LEFT_PRESSED,
-  middle: EGG_MIDDLE_PRESSED,
-  right: EGG_RIGHT_PRESSED,
-};
-
 // ── Layout constants ──────────────────────────────────────────────
-// The 3D egg render is 800×1000 px. We display it at 340 px wide.
-const IMG_W = 1000;
-const IMG_H = 1250;
-const EGG_DISPLAY_W = 600;
-const SCALE = EGG_DISPLAY_W / IMG_W; // 0.425
-const EGG_DISPLAY_H = IMG_H * SCALE; // 425
+// model-viewer container size
+const VIEWER_W = 600;
+const VIEWER_H = 750;
 
-// Screen cutout in the source image (measured from alpha channel)
-const CUT_X = 346;
-const CUT_Y = 471;
-const CUT_W = 306;
-const CUT_H = 306; // square cutout
+// LCD overlay position (percentage-based, tuned for the GLB front view)
+// These are percentages of the viewer container
+const LCD_TOP_PCT = 37.5;
+const LCD_LEFT_PCT = 31.5;
+const LCD_W_PCT = 37;
+const LCD_H_PCT = 24;
 
-// Scaled cutout position & size
-const SCREEN_LEFT = Math.round(CUT_X * SCALE);
-const SCREEN_TOP = Math.round(CUT_Y * SCALE);
-const SCREEN_W = Math.round(CUT_W * SCALE);
-const SCREEN_H = Math.round(CUT_H * SCALE);
-
-// Button centres in the source image (approximate from Blender model)
-const BTN_RADIUS = 22; // touch target radius at display scale
-// Button centres in 1000x1250 image
-const buttons = [
-  { x: 388, y: 900 }, // A – left
-  { x: 500, y: 938 }, // B – middle
-  { x: 612, y: 900 }, // C – right
+// Button touch targets (percentage-based positions over 3D dome buttons)
+const BUTTONS = [
+  { id: 'left' as const, left: 34, top: 71, handler: 'onLeftPress' as const },
+  { id: 'middle' as const, left: 45.5, top: 74, handler: 'onMiddlePress' as const },
+  { id: 'right' as const, left: 57, top: 71, handler: 'onRightPress' as const },
 ];
+
+const BTN_SIZE_PCT = 8; // width & height as % of viewer
+
+// Animation names in the GLB
+const ANIM_MAP: Record<string, string> = {
+  left: 'Button_LeftAction.005',
+  middle: 'Button_MiddleAction.005',
+  right: 'Button_RightAction.005',
+};
 
 type ButtonId = 'left' | 'middle' | 'right';
 
-const PRESS_DURATION_MS = 150;
-
-const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRightPress, isInspectMode, onToggleInspect }) => {
-  const [pressedButton, setPressedButton] = useState<ButtonId | null>(null);
+const EggShell: React.FC<EggShellProps> = ({
+  onLeftPress,
+  onMiddlePress,
+  onRightPress,
+  isInspectMode,
+  onToggleInspect,
+}) => {
+  const containerIdRef = useRef(`eggshell-mv-${Date.now()}`);
+  const modelViewerRef = useRef<any>(null);
+  const [mvReady, setMvReady] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Clean up timeout on unmount
+  // ── Load model-viewer from CDN & create element ──────────────
   useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const containerId = containerIdRef.current;
+
+    const loadModelViewer = (): Promise<void> =>
+      new Promise((resolve, reject) => {
+        if (customElements.get('model-viewer')) {
+          resolve();
+          return;
+        }
+        const s = document.createElement('script');
+        s.type = 'module';
+        s.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js';
+        s.onload = () => resolve();
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+
+    (async () => {
+      await loadModelViewer();
+
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      // Resolve GLB URL
+      let url: string;
+      if (typeof GLB_ASSET === 'string') url = GLB_ASSET;
+      else if (GLB_ASSET?.default) url = GLB_ASSET.default;
+      else if (GLB_ASSET?.uri) url = GLB_ASSET.uri;
+      else url = String(GLB_ASSET);
+
+      // Create model-viewer element
+      const mv = document.createElement('model-viewer');
+      mv.setAttribute('src', url);
+      mv.setAttribute('interaction-prompt', 'none');
+      mv.setAttribute('camera-orbit', '0deg 90deg 4m');
+      mv.setAttribute('disable-zoom', '');
+      mv.setAttribute('environment-image', 'neutral');
+      mv.setAttribute('exposure', '1.2');
+      mv.setAttribute('shadow-intensity', '0.3');
+      mv.style.width = '100%';
+      mv.style.height = '100%';
+      mv.style.backgroundColor = 'transparent';
+      mv.style.setProperty('--poster-color', 'transparent');
+
+      // Store ref
+      modelViewerRef.current = mv;
+      container.appendChild(mv);
+
+      // Wait for model load
+      mv.addEventListener('load', () => {
+        setMvReady(true);
+      });
+    })();
+
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      const container = document.getElementById(containerId);
+      if (container) container.innerHTML = '';
+      modelViewerRef.current = null;
     };
   }, []);
 
-  const handleButtonPress = useCallback((buttonId: ButtonId, handler: () => void) => {
-    // 1. Play click sound + haptic feedback (fire-and-forget)
-    playButtonClick();
-    triggerHaptic('light');
+  // ── Toggle camera-controls based on inspect mode ──────────────
+  useEffect(() => {
+    const mv = modelViewerRef.current;
+    if (!mv) return;
 
-    // 2. Swap to pressed frame
-    setPressedButton(buttonId);
+    if (isInspectMode) {
+      mv.setAttribute('camera-controls', '');
+      mv.removeAttribute('disable-zoom');
+      mv.setAttribute('min-camera-orbit', 'auto 30deg auto');
+      mv.setAttribute('max-camera-orbit', 'auto 150deg auto');
+      mv.setAttribute('shadow-intensity', '0');
+    } else {
+      mv.removeAttribute('camera-controls');
+      mv.setAttribute('disable-zoom', '');
+      mv.removeAttribute('min-camera-orbit');
+      mv.removeAttribute('max-camera-orbit');
+      // Reset camera to front view
+      mv.setAttribute('camera-orbit', '0deg 90deg 4m');
+      mv.setAttribute('shadow-intensity', '0.3');
+    }
+  }, [isInspectMode, mvReady]);
 
-    // 3. After 150ms, reset image then call the action handler
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      setPressedButton(null);
-      // Small delay before handler so the image reset renders first
-      requestAnimationFrame(() => {
+  // ── Button press handler ──────────────────────────────────────
+  const handleButtonPress = useCallback(
+    (buttonId: ButtonId, handler: () => void) => {
+      // Sound + haptic
+      playButtonClick();
+      triggerHaptic('light');
+
+      // Try to play GLB animation
+      const mv = modelViewerRef.current;
+      if (mv && mv.availableAnimations?.length) {
+        const animName = ANIM_MAP[buttonId];
+        if (animName && mv.availableAnimations.includes(animName)) {
+          mv.animationName = animName;
+          mv.play({ repetitions: 1 });
+        }
+      }
+
+      // Fire action after a short delay (let animation start)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
         handler();
-      });
-      timeoutRef.current = null;
-    }, PRESS_DURATION_MS);
-  }, []);
+        timeoutRef.current = null;
+      }, 120);
+    },
+    [],
+  );
 
-  const handleLeft = useCallback(() => handleButtonPress('left', onLeftPress), [handleButtonPress, onLeftPress]);
-  const handleMiddle = useCallback(() => handleButtonPress('middle', onMiddlePress), [handleButtonPress, onMiddlePress]);
-  const handleRight = useCallback(() => handleButtonPress('right', onRightPress), [handleButtonPress, onRightPress]);
+  const handleLeft = useCallback(
+    () => handleButtonPress('left', onLeftPress),
+    [handleButtonPress, onLeftPress],
+  );
+  const handleMiddle = useCallback(
+    () => handleButtonPress('middle', onMiddlePress),
+    [handleButtonPress, onMiddlePress],
+  );
+  const handleRight = useCallback(
+    () => handleButtonPress('right', onRightPress),
+    [handleButtonPress, onRightPress],
+  );
 
-  const btnHandlers = [handleLeft, handleMiddle, handleRight];
+  const handlerMap: Record<string, () => void> = {
+    onLeftPress: handleLeft,
+    onMiddlePress: handleMiddle,
+    onRightPress: handleRight,
+  };
 
   // ── Keyboard support (web) ────────────────────────────────────
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 'i' toggles inspect mode
       if (e.key === 'i' || e.key === 'I') {
         e.preventDefault();
         onToggleInspect();
@@ -113,12 +204,27 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
       if (isInspectMode) return;
 
       switch (e.key) {
-        case 'a': case 'A': case 'ArrowLeft':
-          e.preventDefault(); handleLeft(); break;
-        case 's': case 'S': case 'ArrowDown': case 'Enter': case ' ':
-          e.preventDefault(); handleMiddle(); break;
-        case 'd': case 'D': case 'ArrowRight': case 'Escape':
-          e.preventDefault(); handleRight(); break;
+        case 'a':
+        case 'A':
+        case 'ArrowLeft':
+          e.preventDefault();
+          handleLeft();
+          break;
+        case 's':
+        case 'S':
+        case 'ArrowDown':
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          handleMiddle();
+          break;
+        case 'd':
+        case 'D':
+        case 'ArrowRight':
+        case 'Escape':
+          e.preventDefault();
+          handleRight();
+          break;
       }
     };
 
@@ -126,67 +232,83 @@ const EggShell: React.FC<EggShellProps> = ({ onLeftPress, onMiddlePress, onRight
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleLeft, handleMiddle, handleRight, isInspectMode, onToggleInspect]);
 
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  if (Platform.OS !== 'web') {
+    return (
+      <View style={styles.outerWrapper}>
+        <View style={styles.container}>
+          <Text style={styles.fallbackText}>3D view requires web platform</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.outerWrapper}>
       <View style={styles.container}>
-        {isInspectMode ? (
-          /* ── Inspect Mode: 3D rotatable view ── */
-          <Suspense fallback={
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading 3D...</Text>
-            </View>
-          }>
-            <InspectView />
-          </Suspense>
-        ) : (
-          /* ── Play Mode: existing PNG system (unchanged) ── */
-          <>
-            {/* 1 ▸ Game screen – renders BEHIND the egg PNG */}
-            <View style={styles.screenPosition}>
-              <DeviceScreen />
-            </View>
+        {/* Layer 0: model-viewer (always on) */}
+        <div
+          id={containerIdRef.current}
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'absolute' as any,
+            top: 0,
+            left: 0,
+            zIndex: 0,
+          }}
+        />
 
-            {/* 2 ▸ All egg frames pre-rendered, toggle via opacity (no flash on swap) */}
-            <Image
-              source={EGG_REST}
-              style={[styles.eggImage, { opacity: pressedButton ? 0 : 1 }]}
-              resizeMode="contain"
-            />
-            <Image
-              source={EGG_LEFT_PRESSED}
-              style={[styles.eggImage, { opacity: pressedButton === 'left' ? 1 : 0 }]}
-              resizeMode="contain"
-            />
-            <Image
-              source={EGG_MIDDLE_PRESSED}
-              style={[styles.eggImage, { opacity: pressedButton === 'middle' ? 1 : 0 }]}
-              resizeMode="contain"
-            />
-            <Image
-              source={EGG_RIGHT_PRESSED}
-              style={[styles.eggImage, { opacity: pressedButton === 'right' ? 1 : 0 }]}
-              resizeMode="contain"
-            />
+        {/* Layer 1: LCD overlay (always visible) */}
+        <View
+          style={[
+            styles.lcdOverlay,
+            {
+              top: `${LCD_TOP_PCT}%` as any,
+              left: `${LCD_LEFT_PCT}%` as any,
+              width: `${LCD_W_PCT}%` as any,
+              height: `${LCD_H_PCT}%` as any,
+            },
+          ]}
+          pointerEvents={isInspectMode ? 'none' : 'none'}
+        >
+          <DeviceScreen />
+        </View>
 
-            {/* 3 ▸ Invisible touch targets over the dome buttons */}
-            {buttons.map((btn, i) => (
-              <Pressable
-                key={i}
-                onPress={btnHandlers[i]}
-                style={[
-                  styles.btnHit,
-                  {
-                    left: Math.round(btn.x * SCALE) - BTN_RADIUS,
-                    top: Math.round(btn.y * SCALE) - BTN_RADIUS,
-                  },
-                ]}
-              />
-            ))}
-          </>
+        {/* Layer 2: Invisible button touch targets (disabled in inspect mode) */}
+        {!isInspectMode &&
+          BUTTONS.map((btn) => (
+            <Pressable
+              key={btn.id}
+              onPress={handlerMap[btn.handler]}
+              style={[
+                styles.btnHit,
+                {
+                  left: `${btn.left}%` as any,
+                  top: `${btn.top}%` as any,
+                  width: `${BTN_SIZE_PCT}%` as any,
+                  height: `${BTN_SIZE_PCT}%` as any,
+                  borderRadius: 999,
+                },
+              ]}
+            />
+          ))}
+
+        {/* Inspect mode indicator */}
+        {isInspectMode && (
+          <View style={styles.inspectBadge} pointerEvents="none">
+            <Text style={styles.inspectBadgeText}>🔍 Drag to rotate</Text>
+          </View>
         )}
       </View>
 
-      {/* ── Toggle button below the egg ── */}
+      {/* Toggle button below */}
       <TouchableOpacity
         onPress={onToggleInspect}
         style={styles.toggleButton}
@@ -205,18 +327,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   container: {
-    width: EGG_DISPLAY_W,
-    height: EGG_DISPLAY_H,
+    width: VIEWER_W,
+    height: VIEWER_H,
     position: 'relative' as const,
   },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
+  fallbackText: {
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 50,
     fontSize: 14,
-    color: '#8B7355',
+  },
+  lcdOverlay: {
+    position: 'absolute',
+    zIndex: 1,
+    overflow: 'hidden',
+    borderRadius: 6,
+  },
+  btnHit: {
+    position: 'absolute',
+    zIndex: 2,
+  },
+  inspectBadge: {
+    position: 'absolute',
+    top: 12,
+    alignSelf: 'center',
+    left: '50%' as any,
+    transform: [{ translateX: -60 }],
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 3,
+  },
+  inspectBadgeText: {
+    color: '#fff',
+    fontSize: 12,
     fontWeight: '500',
   },
   toggleButton: {
@@ -230,33 +375,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#8B7355',
     fontWeight: '500',
-  },
-  screenPosition: {
-    position: 'absolute',
-    left: SCREEN_LEFT,
-    top: SCREEN_TOP,
-    width: SCREEN_W,
-    height: SCREEN_H,
-    zIndex: 0,
-    overflow: 'hidden',
-    borderRadius: 6,
-  },
-  eggImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: EGG_DISPLAY_W,
-    height: EGG_DISPLAY_H,
-    zIndex: 1,
-    pointerEvents: 'none' as any, // Let clicks pass through to buttons behind
-  },
-  btnHit: {
-    position: 'absolute',
-    width: BTN_RADIUS * 2,
-    height: BTN_RADIUS * 2,
-    borderRadius: BTN_RADIUS,
-    zIndex: 2,
-    // Uncomment to debug: backgroundColor: 'rgba(255,0,0,0.3)',
   },
 });
 
