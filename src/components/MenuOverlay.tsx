@@ -1,7 +1,9 @@
-import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import React, { useEffect, useRef, useCallback } from 'react';
+import { View, StyleSheet, Text, Image, Animated, Platform, Pressable } from 'react-native';
 import { DeviceMode, MenuItem } from '../types';
 import { usePetStore } from '../store/petStore';
+
+const pointerImg = require('../assets/ui/pointer_right.png');
 
 const MENU_ITEMS: { id: MenuItem; icon: string; label: string }[] = [
   { id: 'feed', icon: '🍚', label: 'Feed' },
@@ -10,28 +12,78 @@ const MENU_ITEMS: { id: MenuItem; icon: string; label: string }[] = [
   { id: 'stats', icon: '📊', label: 'Stats' },
 ];
 
+/** Animated pointer arrow — bounces left/right like TamaWeb (0.5s alternate) */
+const PointerArrow: React.FC = () => {
+  const bounce = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounce, {
+          toValue: -3,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounce, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [bounce]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.pointerContainer,
+        { transform: [{ translateX: bounce }] },
+      ]}
+    >
+      <Image
+        source={pointerImg}
+        style={styles.pointerImage}
+        resizeMode="contain"
+      />
+    </Animated.View>
+  );
+};
+
 interface MenuOverlayProps {
   mode: DeviceMode;
+  onSelect?: () => void;
 }
 
-const MenuOverlay: React.FC<MenuOverlayProps> = ({ mode }) => {
+const MenuOverlay: React.FC<MenuOverlayProps> = ({ mode, onSelect }) => {
   const menuIndex = usePetStore(s => s.menuIndex);
+  const setMenuIndex = usePetStore(s => s.setMenuIndex);
 
   if (mode !== 'menu') return null;
+
+  const handleItemPress = useCallback((idx: number) => {
+    // Set index first, then fire select synchronously
+    // usePetStore.setState is sync so handleMiddle will read the updated index
+    usePetStore.setState({ menuIndex: idx });
+    onSelect?.();
+  }, [onSelect]);
 
   return (
     <View style={styles.container}>
       {MENU_ITEMS.map((item, idx) => (
-        <View
+        <Pressable
           key={item.id}
-          style={[styles.menuItem, idx === menuIndex && styles.menuItemSelected]}
+          style={styles.menuItem}
+          onHoverIn={() => setMenuIndex(idx)}
+          onPress={() => handleItemPress(idx)}
         >
-          {idx === menuIndex && <Text style={styles.cursor}>▶</Text>}
+          {idx === menuIndex && <PointerArrow />}
           <Text style={styles.menuIcon}>{item.icon}</Text>
           <Text style={[styles.menuLabel, idx === menuIndex && styles.menuLabelSelected]}>
             {item.label}
           </Text>
-        </View>
+        </Pressable>
       ))}
     </View>
   );
@@ -40,47 +92,48 @@ const MenuOverlay: React.FC<MenuOverlayProps> = ({ mode }) => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 5,
+    bottom: 0,
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-evenly',
-    paddingHorizontal: 5,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(240,237,229,0.92)',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(245, 242, 235, 0.95)',
     borderTopWidth: 1,
-    borderTopColor: '#C8C0B0',
+    borderTopColor: 'rgba(200, 192, 176, 0.5)',
   },
   menuItem: {
     alignItems: 'center',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    position: 'relative' as const,
   },
-  menuItemSelected: {
-    backgroundColor: 'rgba(200, 176, 138, 0.4)',
-    borderWidth: 1,
-    borderColor: '#C4B08A',
-  },
-  cursor: {
-    fontSize: 7,
-    color: '#444',
-    fontFamily: 'monospace',
+  pointerContainer: {
     position: 'absolute',
-    top: 2,
-    left: -1,
+    left: -2,
+    top: '50%' as any,
+    marginTop: -5, // center the 9px tall arrow
+    zIndex: 1,
+  },
+  pointerImage: {
+    width: 11,
+    height: 9,
+    ...(Platform.OS === 'web' ? { imageRendering: 'pixelated' } as any : {}),
   },
   menuIcon: {
-    fontSize: 19,
+    fontSize: 20,
   },
   menuLabel: {
     fontSize: 9,
     fontWeight: '600',
-    color: '#888',
+    color: '#AAA',
     fontFamily: 'monospace',
+    marginTop: 1,
   },
   menuLabelSelected: {
-    color: '#444',
+    color: '#555',
   },
 });
 

@@ -10,7 +10,13 @@ import StatsScreen from './StatsScreen';
 import SleepParticles from './SleepParticles';
 import { usePetStore } from '../store/petStore';
 
-const DeviceScreen: React.FC = () => {
+interface DeviceScreenProps {
+  onSelect?: () => void;
+  /** Whether menu is active — used to control pointer events on overlays */
+  isMenuActive?: boolean;
+}
+
+const DeviceScreen: React.FC<DeviceScreenProps> = ({ onSelect, isMenuActive }) => {
   const stats = usePetStore(s => s.stats);
   const mood = usePetStore(s => s.mood);
   const deviceMode = usePetStore(s => s.deviceMode);
@@ -47,7 +53,7 @@ const DeviceScreen: React.FC = () => {
           </View>
 
           {/* Overlays — none shown during sleep */}
-          {!isSleeping && deviceMode === 'menu' && <MenuOverlay mode={deviceMode} />}
+          {!isSleeping && deviceMode === 'menu' && <MenuOverlay mode={deviceMode} onSelect={onSelect} />}
           {!isSleeping && deviceMode === 'feeding' && <FoodSelect />}
           {!isSleeping && deviceMode === 'stats' && <StatsScreen />}
         </View>

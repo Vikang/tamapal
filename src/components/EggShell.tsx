@@ -23,12 +23,12 @@ const VIEWER_H = 750;
 // LCD overlay position (percentage-based, tuned for the GLB front view)
 // These are percentages of the viewer container
 // LCD overlay positioning (% of viewer container — 600×750)
-// Screen mesh is SQUARE (0.72×0.72 in GLB)
-// Width: 44% of 600 = 264px → Height: 264/750 = 35.2%
-const LCD_TOP_PCT = 33;
-const LCD_LEFT_PCT = 36.5;
-const LCD_W_PCT = 27;
-const LCD_H_PCT = 23; // Balanced: clear of star points but fills the bezel well
+// Screen mesh is SQUARE in the GLB model
+// To get a square overlay: if W = 40% of 600 = 240px, then H = 240/750 = 32%
+const LCD_TOP_PCT = 29.6;
+const LCD_LEFT_PCT = 30;
+const LCD_W_PCT = 40;
+const LCD_H_PCT = 32; // 32% of 750 = 240px = same as 40% of 600 → square
 
 // Button touch targets (percentage-based positions over 3D dome buttons)
 const BUTTONS = [
@@ -37,7 +37,7 @@ const BUTTONS = [
   { id: 'right' as const, left: 57, top: 71, handler: 'onRightPress' as const },
 ];
 
-const BTN_SIZE_PCT = 8; // width & height as % of viewer
+const BTN_SIZE_PCT = 11; // width & height as % of viewer — larger to cover full 3D button domes
 
 // Animation names in the GLB
 // Animation names — all clips now start at frame 0, duration 10 frames (0.42s)
@@ -276,7 +276,7 @@ const EggShell: React.FC<EggShellProps> = ({
           }}
         />
 
-        {/* Layer 1: LCD overlay (always visible) */}
+        {/* Layer 1: LCD overlay (always visible) — tap = middle button (select) */}
         <View
           style={[
             styles.lcdOverlay,
@@ -287,9 +287,9 @@ const EggShell: React.FC<EggShellProps> = ({
               height: `${LCD_H_PCT}%` as any,
             },
           ]}
-          pointerEvents={isInspectMode ? 'none' : 'none'}
+          pointerEvents={isInspectMode ? 'none' : 'box-none'}
         >
-          <DeviceScreen />
+          <DeviceScreen onSelect={handleMiddle} />
         </View>
 
         {/* Layer 2: Invisible button touch targets (disabled in inspect mode) */}
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     zIndex: 1,
     overflow: 'hidden',
-    borderRadius: 4,
+    borderRadius: 12,
     // Gray inset shadow border — looks like a recessed screen
     borderWidth: 2,
     borderColor: '#8A8A88',
