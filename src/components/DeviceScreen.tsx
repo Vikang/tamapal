@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import Room from './Room';
 import PetSprite from './PetSprite';
 import StatusBar from './StatusBar';
@@ -30,7 +30,7 @@ const DeviceScreen: React.FC<DeviceScreenProps> = ({ onSelect, isMenuActive }) =
     : computeMood();
 
   return (
-    <View style={styles.screenOuter}>
+    <Pressable style={styles.screenOuter} onPress={onSelect}>
       <View style={styles.screenInner}>
         {/* Screen content */}
         <View style={styles.screenContent}>
@@ -58,7 +58,7 @@ const DeviceScreen: React.FC<DeviceScreenProps> = ({ onSelect, isMenuActive }) =
           {!isSleeping && deviceMode === 'stats' && <StatsScreen />}
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 };
 

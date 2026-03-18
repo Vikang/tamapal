@@ -3,7 +3,9 @@ import { View, StyleSheet, Text, Image, Animated, Platform, Pressable } from 're
 import { DeviceMode, MenuItem } from '../types';
 import { usePetStore } from '../store/petStore';
 
-const pointerImg = require('../assets/ui/pointer_right.png');
+// Inline SVG as data URI — avoids Metro SVG bundling issues and preserves transparency
+const CURSOR_SVG_B64 = 'PHN2ZyB3aWR0aD0iNDQiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0NCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI4IDQ4SDIwVjQ0SDI4VjQ4Wk0yMCA0NEgxNlY0MEg0VjM2SDIwVjQ0Wk0zMiA0NEgyOFY0MEgzMlY0NFpNMzYgNDBIMzJWMzZIMzZWNDBaTTQgMzZIMFYxMkg0VjM2Wk00MCAzNkgzNlYzMkg0MFYzNlpNNDQgMzJINDBWMTZINDRWMzJaTTQwIDE2SDM2VjEySDQwVjE2Wk0yMCAxMkg0VjhIMTZWNEgyMFYxMlpNMzYgMTJIMzJWOEgzNlYxMlpNMzIgOEgyOFY0SDMyVjhaTTI4IDRIMjBWMEgyOFY0WiIgZmlsbD0iIzZENzQ3MCIvPgo8cGF0aCBkPSJNMjggMzZIMjBWMzJIMjhWMzZaTTMyIDMySDI4VjI4SDMyVjMyWk04IDI4SDRWMjRIOFYyOFpNMzYgMjhIMzJWMjRIMzZWMjhaTTQwIDI0SDM2VjE2SDQwVjI0Wk04IDE2SDRWMTJIOFYxNlpNMzYgMTZIMzJWMTJIMzZWMTZaTTMyIDEySDI4VjhIMzJWMTJaTTI4IDhIMjRWNEgyOFY4WiIgZmlsbD0iI0U1RThERSIvPgo8cGF0aCBkPSJNNDAgMzJIMzZWMzZIMzJWNDBIMjhWNDRIMjBWMzZIMjhWMzJIMzJWMjhIMzZWMjRINDBWMzJaTTIwIDM2SDRWMjhIMjBWMzZaIiBmaWxsPSIjQzJDOEJBIi8+CjxwYXRoIGQ9Ik0yOCAzMkgyMFYyOEg4VjI0SDRWMTZIOFYxMkgyMFY0SDI0VjhIMjhWMTJIMzJWMTZIMzZWMjRIMzJWMjhIMjhWMzJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K';
+const cursorImg = { uri: `data:image/svg+xml;base64,${CURSOR_SVG_B64}` };
 
 const MENU_ITEMS: { id: MenuItem; icon: string; label: string }[] = [
   { id: 'feed', icon: '🍚', label: 'Feed' },
@@ -43,7 +45,7 @@ const PointerArrow: React.FC = () => {
       ]}
     >
       <Image
-        source={pointerImg}
+        source={cursorImg}
         style={styles.pointerImage}
         resizeMode="contain"
       />
@@ -114,12 +116,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: -2,
     top: '50%' as any,
-    marginTop: -5, // center the 9px tall arrow
+    marginTop: -6, // center the cursor vertically
     zIndex: 1,
   },
   pointerImage: {
     width: 11,
-    height: 9,
+    height: 12,
     ...(Platform.OS === 'web' ? { imageRendering: 'pixelated' } as any : {}),
   },
   menuIcon: {
