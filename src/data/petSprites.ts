@@ -10,6 +10,8 @@ const M = '#CC5555'; // mouth
 const T = '#8ED8F0'; // tub/water
 const Z = '#AAAAAA'; // zzz gray
 const G = '#88CC88'; // green (stink)
+const Y = '#FFD700'; // yellow (milk cap)
+const L = '#B8D8F0'; // light blue (milk)
 const _ = null;      // transparent
 
 // ===== IDLE FRAME 1 (standing) =====
@@ -303,4 +305,15 @@ export const cookieSprite: PixelFrame = [
   [B,S,B,S,S,B,B,_],
   [_,B,S,S,B,S,B,_],
   [_,_,B,B,B,B,_,_],
+];
+
+export const milkSprite: PixelFrame = [
+  [_,_,B,B,B,_,_,_],
+  [_,_,B,Y,B,_,_,_],
+  [_,B,B,Y,B,B,_,_],
+  [_,B,W,W,W,B,_,_],
+  [_,B,W,L,W,B,_,_],
+  [_,B,L,L,L,B,_,_],
+  [_,B,L,L,L,B,_,_],
+  [_,_,B,B,B,_,_,_],
 ];

@@ -9,13 +9,15 @@ export type PetMood = 'idle' | 'eating' | 'bathing' | 'sleeping' | 'happy' | 'sa
 
 export type MenuItem = 'feed' | 'bathe' | 'sleep' | 'stats';
 
-export type FoodItem = 'riceball' | 'apple' | 'cookie';
+export type FoodItem = 'milk' | 'riceball' | 'apple' | 'cookie';
 
 export interface FoodOption {
   name: string;
   id: FoodItem;
   hungerBoost: number;
   happinessBoost: number;
+  /** Number owned; -1 = infinite (always available) */
+  quantity: number;
 }
 
 export type TimeOfDay = 'day' | 'evening' | 'night';

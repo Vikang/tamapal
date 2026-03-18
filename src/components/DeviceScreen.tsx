@@ -54,7 +54,7 @@ const DeviceScreen: React.FC<DeviceScreenProps> = ({ onSelect, isMenuActive }) =
 
           {/* Overlays — none shown during sleep */}
           {!isSleeping && deviceMode === 'menu' && <MenuOverlay mode={deviceMode} onSelect={onSelect} />}
-          {!isSleeping && deviceMode === 'feeding' && <FoodSelect />}
+          {!isSleeping && deviceMode === 'feeding' && <FoodSelect onSelect={onSelect} onBack={onSelect} />}
           {!isSleeping && deviceMode === 'stats' && <StatsScreen />}
         </View>
       </View>

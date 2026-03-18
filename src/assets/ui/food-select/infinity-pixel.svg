@@ -1,0 +1,23 @@
+<svg width="19" height="9" viewBox="0 0 19 9" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+  <!-- Thicker pixelated infinity, 3px stroke weight -->
+  <!-- Left loop top -->
+  <rect x="2" y="0" width="4" height="2" fill="#02015D"/>
+  <!-- Left loop left side -->
+  <rect x="0" y="2" width="2" height="5" fill="#02015D"/>
+  <!-- Left loop bottom -->
+  <rect x="2" y="7" width="4" height="2" fill="#02015D"/>
+  <!-- Left loop right + cross -->
+  <rect x="6" y="1" width="2" height="3" fill="#02015D"/>
+  <rect x="6" y="5" width="2" height="3" fill="#02015D"/>
+  <!-- Center cross -->
+  <rect x="8" y="3" width="3" height="3" fill="#02015D"/>
+  <!-- Right loop left + cross -->
+  <rect x="11" y="1" width="2" height="3" fill="#02015D"/>
+  <rect x="11" y="5" width="2" height="3" fill="#02015D"/>
+  <!-- Right loop top -->
+  <rect x="13" y="0" width="4" height="2" fill="#02015D"/>
+  <!-- Right loop right side -->
+  <rect x="17" y="2" width="2" height="5" fill="#02015D"/>
+  <!-- Right loop bottom -->
+  <rect x="13" y="7" width="4" height="2" fill="#02015D"/>
+</svg>
