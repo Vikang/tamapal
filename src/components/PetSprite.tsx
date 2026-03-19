@@ -14,12 +14,56 @@ import {
   dirtyFrame1, dirtyFrame2,
 } from '../data/petSprites';
 
-// Baby character sprite sheet from TamaWeb (64x64 → 4x4 grid of 16x16 cells)
-const characterSprite = require('../assets/sprites/chara_1b.png');
+// ── Sprite sheet map — require() needs static paths ─────────
+// Metro bundler can't resolve dynamic require(), so we map all available sheets
+const SPRITE_SHEETS: Record<string, any> = {
+  'chara_1b':  require('../assets/sprites/chara_1b.png'),
+  'chara_2b':  require('../assets/sprites/chara_2b.png'),
+  'chara_3b':  require('../assets/sprites/chara_3b.png'),
+  'chara_4b':  require('../assets/sprites/chara_4b.png'),
+  'chara_5b':  require('../assets/sprites/chara_5b.png'),
+  'chara_6b':  require('../assets/sprites/chara_6b.png'),
+  'chara_7b':  require('../assets/sprites/chara_7b.png'),
+  'chara_8b':  require('../assets/sprites/chara_8b.png'),
+  'chara_9b':  require('../assets/sprites/chara_9b.png'),
+  'chara_10b': require('../assets/sprites/chara_10b.png'),
+  'chara_11b': require('../assets/sprites/chara_11b.png'),
+  'chara_12b': require('../assets/sprites/chara_12b.png'),
+  'chara_13b': require('../assets/sprites/chara_13b.png'),
+  'chara_14b': require('../assets/sprites/chara_14b.png'),
+  'chara_15b': require('../assets/sprites/chara_15b.png'),
+  'chara_16b': require('../assets/sprites/chara_16b.png'),
+  // Toddler sprites
+  'chara_17b': require('../assets/sprites/chara_17b.png'),
+  'chara_18b': require('../assets/sprites/chara_18b.png'),
+  'chara_19b': require('../assets/sprites/chara_19b.png'),
+  'chara_20b': require('../assets/sprites/chara_20b.png'),
+  'chara_21b': require('../assets/sprites/chara_21b.png'),
+  'chara_22b': require('../assets/sprites/chara_22b.png'),
+  // Teen sprites
+  'chara_49b': require('../assets/sprites/chara_49b.png'),
+  'chara_50b': require('../assets/sprites/chara_50b.png'),
+  'chara_51b': require('../assets/sprites/chara_51b.png'),
+  'chara_52b': require('../assets/sprites/chara_52b.png'),
+  'chara_53b': require('../assets/sprites/chara_53b.png'),
+  'chara_54b': require('../assets/sprites/chara_54b.png'),
+  // Adult sprites
+  'chara_133b': require('../assets/sprites/chara_133b.png'),
+  'chara_134b': require('../assets/sprites/chara_134b.png'),
+  'chara_135b': require('../assets/sprites/chara_135b.png'),
+  'chara_136b': require('../assets/sprites/chara_136b.png'),
+  'chara_137b': require('../assets/sprites/chara_137b.png'),
+  'chara_138b': require('../assets/sprites/chara_138b.png'),
+};
+
+// Default fallback
+const DEFAULT_SPRITE = SPRITE_SHEETS['chara_1b'];
 
 interface PetSpriteProps {
   mood: PetMood;
   pixelSize?: number;
+  /** Sprite key from character definition (e.g., 'chara_1b') */
+  spriteKey?: string;
 }
 
 // Animation config for sprite sheet mode — mapped from TamaWeb PetDefinition.js
@@ -85,7 +129,9 @@ const FRAME_DURATIONS: Record<PetMood, number> = {
 // Set to true to use sprite sheets, false for pixel art fallback
 const USE_SPRITES = true;
 
-const PetSprite: React.FC<PetSpriteProps> = ({ mood, pixelSize = 7 }) => {
+const PetSprite: React.FC<PetSpriteProps> = ({ mood, pixelSize = 7, spriteKey }) => {
+  // Resolve sprite sheet from key
+  const characterSprite = (spriteKey && SPRITE_SHEETS[spriteKey]) || DEFAULT_SPRITE;
   const [frameIndex, setFrameIndex] = useState(0);
 
   // Pixel grid fallback animation

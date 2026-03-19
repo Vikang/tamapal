@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PetStats, PetMood, DeviceMode, MenuItem, FoodItem } from '../types';
+import { PetStats, PetMood, DeviceMode, MenuItem, FoodItem, LifeStage } from '../types';
 import { clamp } from '../utils/time';
 import { FOOD_OPTIONS } from '../data/foodData';
+import { evolve, calculateCareRating, getAgingDuration, getCharacter } from '../data/evolution';
 
 const STORAGE_KEY = 'tamapal_state';
 const SAVE_INTERVAL = 30_000; // 30 seconds
@@ -22,6 +23,12 @@ interface PetState {
   birthTime: number;
   lastSaveTime: number;
 
+  // Evolution data
+  characterId: string;
+  lifeStage: LifeStage;
+  stageStartTime: number;       // When current stage began (ms timestamp)
+  evolutionPending: boolean;     // True when pet is ready to evolve
+
   // Device UI state
   deviceMode: DeviceMode;
   menuIndex: number;
@@ -37,6 +44,8 @@ interface PetState {
   setMenuIndex: (idx: number) => void;
   setFoodIndex: (idx: number) => void;
   tickDecay: () => void;
+  checkEvolution: () => void;    // Check if it's time to evolve
+  triggerEvolution: () => void;  // Actually evolve the pet
   computeMood: () => PetMood;
   saveState: () => Promise<void>;
   loadState: () => Promise<void>;
@@ -47,6 +56,12 @@ export const usePetStore = create<PetState>((set, get) => ({
   mood: 'idle',
   birthTime: Date.now(),
   lastSaveTime: Date.now(),
+
+  // Evolution — start as baby_01 (egg stage skipped for now)
+  characterId: 'baby_01',
+  lifeStage: LifeStage.Baby,
+  stageStartTime: Date.now(),
+  evolutionPending: false,
 
   deviceMode: 'home',
   menuIndex: 0,
@@ -126,6 +141,49 @@ export const usePetStore = create<PetState>((set, get) => ({
     });
   },
 
+  // ── Evolution methods ──────────────────────────────────────
+  checkEvolution: () => {
+    const { characterId, lifeStage, stageStartTime, evolutionPending } = get();
+    if (evolutionPending) return; // Already pending
+
+    const duration = getAgingDuration(lifeStage);
+    if (duration === null) return; // Adult — no further evolution
+
+    const elapsed = Date.now() - stageStartTime;
+    if (elapsed >= duration) {
+      set({ evolutionPending: true });
+      console.log(`[Evolution] ${characterId} ready to evolve after ${Math.round(elapsed / 60000)}min`);
+    }
+  },
+
+  triggerEvolution: () => {
+    const { characterId, stats } = get();
+    const careRating = calculateCareRating(stats);
+    const nextCharId = evolve(characterId, careRating);
+
+    if (!nextCharId) {
+      console.log('[Evolution] No evolution path found');
+      set({ evolutionPending: false });
+      return;
+    }
+
+    const nextChar = getCharacter(nextCharId);
+    if (!nextChar) {
+      console.log(`[Evolution] Character ${nextCharId} not found`);
+      set({ evolutionPending: false });
+      return;
+    }
+
+    console.log(`[Evolution] ${characterId} → ${nextCharId} (${nextChar.name}) | care: ${careRating}`);
+
+    set({
+      characterId: nextCharId,
+      lifeStage: nextChar.stage,
+      stageStartTime: Date.now(),
+      evolutionPending: false,
+    });
+  },
+
   computeMood: (): PetMood => {
     const { stats, isSleeping } = get();
     if (isSleeping) return 'sleeping';
@@ -138,10 +196,14 @@ export const usePetStore = create<PetState>((set, get) => ({
   saveState: async () => {
     try {
       const { stats, birthTime, isSleeping } = get();
+      const { characterId, lifeStage, stageStartTime } = get();
       const data = {
         stats,
         birthTime,
         isSleeping,
+        characterId,
+        lifeStage,
+        stageStartTime,
         savedAt: Date.now(),
       };
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -173,6 +235,10 @@ export const usePetStore = create<PetState>((set, get) => ({
         stats,
         birthTime: data.birthTime,
         isSleeping: false, // wake up on app open
+        // Restore evolution state
+        characterId: data.characterId || 'baby_01',
+        lifeStage: data.lifeStage || LifeStage.Baby,
+        stageStartTime: data.stageStartTime || Date.now(),
       });
     } catch {
       // No saved state — use defaults

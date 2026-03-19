@@ -26,6 +26,7 @@ export default function App() {
   const startSleep = usePetStore(s => s.startSleep);
   const wakeUp = usePetStore(s => s.wakeUp);
   const tickDecay = usePetStore(s => s.tickDecay);
+  const checkEvolution = usePetStore(s => s.checkEvolution);
   const loadState = usePetStore(s => s.loadState);
 
   // Load fonts on mount
@@ -41,8 +42,11 @@ export default function App() {
     loadState();
     startAutoSave();
 
-    // Decay tick every second
-    decayTimerRef.current = setInterval(tickDecay, 1000);
+    // Decay tick + evolution check every second
+    decayTimerRef.current = setInterval(() => {
+      tickDecay();
+      checkEvolution();
+    }, 1000);
 
     return () => {
       if (decayTimerRef.current) clearInterval(decayTimerRef.current);

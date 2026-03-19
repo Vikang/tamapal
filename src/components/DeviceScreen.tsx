@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import Room from './Room';
 import PetSprite from './PetSprite';
+import { getCharacter } from '../data/evolution';
 import StatusBar from './StatusBar';
 import ThoughtBubble from './ThoughtBubble';
 import MenuOverlay from './MenuOverlay';
@@ -22,6 +23,8 @@ const DeviceScreen: React.FC<DeviceScreenProps> = ({ onSelect, isMenuActive }) =
   const deviceMode = usePetStore(s => s.deviceMode);
   const isSleeping = usePetStore(s => s.isSleeping);
   const computeMood = usePetStore(s => s.computeMood);
+  const characterId = usePetStore(s => s.characterId);
+  const characterDef = getCharacter(characterId);
 
   // isSleeping is the authoritative flag — check it first
   const currentMood = isSleeping ? 'sleeping'
@@ -43,7 +46,7 @@ const DeviceScreen: React.FC<DeviceScreenProps> = ({ onSelect, isMenuActive }) =
 
             {/* Pet centered */}
             <View style={styles.petContainer}>
-              <PetSprite mood={currentMood} pixelSize={4} />
+              <PetSprite mood={currentMood} pixelSize={4} spriteKey={characterDef?.sprite} />
               {!isSleeping && deviceMode === 'home' && (
                 <ThoughtBubble stats={stats} />
               )}
