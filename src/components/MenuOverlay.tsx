@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '600',
     color: '#AAA',
-    fontFamily: 'monospace',
+    fontFamily: 'VCROSDMono',
     marginTop: 1,
   },
   menuLabelSelected: {

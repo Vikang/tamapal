@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '400',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontFamily: 'VCROSDMono',
     textTransform: 'uppercase' as any,
     textAlign: 'center',
   },
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     color: '#02015D',
     fontSize: 18,
     fontWeight: '700',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontFamily: 'VCROSDMono',
     marginTop: -2,
   },
 });

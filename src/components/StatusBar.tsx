@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#444',
     marginBottom: 1,
-    fontFamily: 'monospace',
+    fontFamily: 'VCROSDMono',
   },
   barOuter: {
     width: '100%',

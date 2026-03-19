@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as Font from 'expo-font';
 import EggShell from './src/components/EggShell';
 import { usePetStore, startAutoSave, stopAutoSave } from './src/store/petStore';
 import { FOOD_OPTIONS } from './src/data/foodData';
@@ -9,6 +10,7 @@ import { triggerHaptic } from './src/utils/haptics';
 const MENU_ACTIONS = ['feed', 'bathe', 'sleep', 'stats'] as const;
 
 export default function App() {
+  const [fontsLoaded, setFontsLoaded] = useState(false);
   const [isInspectMode, setIsInspectMode] = useState(false);
   const decayTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const deviceMode = usePetStore(s => s.deviceMode);
@@ -25,6 +27,14 @@ export default function App() {
   const wakeUp = usePetStore(s => s.wakeUp);
   const tickDecay = usePetStore(s => s.tickDecay);
   const loadState = usePetStore(s => s.loadState);
+
+  // Load fonts on mount
+  useEffect(() => {
+    Font.loadAsync({
+      'VCROSDMono': require('./src/assets/fonts/VCROSDMono.ttf'),
+    }).then(() => setFontsLoaded(true))
+      .catch(() => setFontsLoaded(true)); // fallback gracefully
+  }, []);
 
   // Load saved state + start timers on mount
   useEffect(() => {
@@ -166,6 +176,14 @@ export default function App() {
         break;
     }
   }, [deviceMode, setDeviceMode, wakeUp]);
+
+  if (!fontsLoaded) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="small" color="#8B7355" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

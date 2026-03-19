@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#444',
     textAlign: 'center',
-    fontFamily: 'monospace',
+    fontFamily: 'VCROSDMono',
     letterSpacing: 3,
   },
   divider: {
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     color: '#555',
-    fontFamily: 'monospace',
+    fontFamily: 'VCROSDMono',
   },
   barContainer: {
     flex: 1,
@@ -104,14 +104,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#555',
     textAlign: 'right',
-    fontFamily: 'monospace',
+    fontFamily: 'VCROSDMono',
   },
   ageText: {
     fontSize: 11,
     fontWeight: '700',
     color: '#666',
     textAlign: 'center',
-    fontFamily: 'monospace',
+    fontFamily: 'VCROSDMono',
   },
 });
 

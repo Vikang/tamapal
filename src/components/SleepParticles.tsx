@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     color: '#AAAAAA',
     fontWeight: '900',
-    fontFamily: 'monospace',
+    fontFamily: 'VCROSDMono',
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 0,
