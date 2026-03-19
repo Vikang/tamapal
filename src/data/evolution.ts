@@ -5,10 +5,10 @@ import { LifeStage, CharacterDef, GrowthPath, AgingConfig } from '../types';
 // These can be tuned later — using shorter times for dev/testing
 
 export const AGING_CONFIG: AgingConfig[] = [
-  { stage: LifeStage.Egg,     durationMs: 1 * 60 * 1000 },        // 1 minute (hatching)
-  { stage: LifeStage.Baby,    durationMs: 2 * 60 * 60 * 1000 },   // 2 hours
-  { stage: LifeStage.Toddler, durationMs: 8 * 60 * 60 * 1000 },   // 8 hours
-  { stage: LifeStage.Teen,    durationMs: 24 * 60 * 60 * 1000 },   // 24 hours
+  { stage: LifeStage.Egg,     durationMs: 10 * 1000 },              // 10 seconds for testing (prod: 1 min)
+  { stage: LifeStage.Baby,    durationMs: 30 * 1000 },              // 30 seconds for testing (prod: 2 hours)
+  { stage: LifeStage.Toddler, durationMs: 60 * 1000 },              // 60 seconds for testing (prod: 8 hours)
+  { stage: LifeStage.Teen,    durationMs: 90 * 1000 },              // 90 seconds for testing (prod: 24 hours)
   { stage: LifeStage.Adult,   durationMs: null },                   // Final stage — no further evolution
 ];
 

@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, Pressable, Image, Platform, Animated } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Text, Pressable, Image, Platform, Animated, ScrollView } from 'react-native';
 import PixelGrid from './PixelGrid';
 import { usePetStore } from '../store/petStore';
 import { FOOD_OPTIONS } from '../data/foodData';
@@ -26,6 +26,10 @@ const btnWhiteSrc = { uri: `data:image/svg+xml;base64,${BTN_WHITE_B64}` };
 const btnBlueSrc = { uri: `data:image/svg+xml;base64,${BTN_BLUE_B64}` };
 const backArrowSrc = { uri: `data:image/svg+xml;base64,${BACK_ARROW_B64}` };
 const listViewSrc = { uri: `data:image/svg+xml;base64,${LIST_VIEW_B64}` };
+
+// Cursor for selected state in list view (same as MenuOverlay)
+const CURSOR_B64 = 'PHN2ZyB3aWR0aD0iNDQiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0NCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI4IDQ4SDIwVjQ0SDI4VjQ4Wk0yMCA0NEgxNlY0MEg0VjM2SDIwVjQ0Wk0zMiA0NEgyOFY0MEgzMlY0NFpNMzYgNDBIMzJWMzZIMzZWNDBaTTQgMzZIMFYxMkg0VjM2Wk00MCAzNkgzNlYzMkg0MFYzNlpNNDQgMzJINDBWMTZINDRWMzJaTTQwIDE2SDM2VjEySDQwVjE2Wk0yMCAxMkg0VjhIMTZWNEgyMFYxMlpNMzYgMTJIMzJWOEgzNlYxMlpNMzIgOEgyOFY0SDMyVjhaTTI4IDRIMjBWMEgyOFY0WiIgZmlsbD0iIzZENzQ3MCIvPgo8cGF0aCBkPSJNMjggMzZIMjBWMzJIMjhWMzZaTTMyIDMySDI4VjI4SDMyVjMyWk04IDI4SDRWMjRIOFYyOFpNMzYgMjhIMzJWMjRIMzZWMjhaTTQwIDI0SDM2VjE2SDQwVjI0Wk04IDE2SDRWMTJIOFYxNlpNMzYgMTZIMzJWMTJIMzZWMTZaTTMyIDEySDI4VjhIMzJWMTJaTTI4IDhIMjRWNEgyOFY4WiIgZmlsbD0iI0U1RThERSIvPgo8cGF0aCBkPSJNNDAgMzJIMzZWMzZIMzJWNDBIMjhWNDRIMjBWMzZIMjhWMzJIMzJWMjhIMzZWMjRINDBWMzJaTTIwIDM2SDRWMjhIMjBWMzZaIiBmaWxsPSIjQzJDOEJBIi8+CjxwYXRoIGQ9Ik0yOCAzMkgyMFYyOEg4VjI0SDRWMTZIOFYxMkgyMFY0SDI0VjhIMjhWMTJIMzJWMTZIMzZWMjRIMzJWMjhIMjhWMzJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K';
+const cursorSrc = { uri: `data:image/svg+xml;base64,${CURSOR_B64}` };
 
 // ── Food sprite map (PixelGrid for non-milk items) ───────────
 const FOOD_SPRITES: Record<string, PixelFrame> = {
@@ -72,17 +76,44 @@ interface FoodSelectProps {
 }
 
 const FoodSelect: React.FC<FoodSelectProps> = ({ onSelect, onBack }) => {
+  const [listMode, setListMode] = useState(false);
+  const listBounce = useRef(new Animated.Value(0)).current;
+
+  // Bounce animation for list cursor — restart when entering list mode or selection changes
+  useEffect(() => {
+    if (!listMode) return;
+    listBounce.setValue(0);
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(listBounce, { toValue: 3, duration: 500, useNativeDriver: true }),
+        Animated.timing(listBounce, { toValue: 0, duration: 500, useNativeDriver: true }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [listMode, listBounce, foodIndex]);
   const foodIndex = usePetStore(s => s.foodIndex);
   const setFoodIndex = usePetStore(s => s.setFoodIndex);
+  const inventory = usePetStore(s => s.inventory);
   const food = FOOD_OPTIONS[foodIndex];
+  const qty = inventory[food.id];
+
+  // Get available foods (quantity > 0 or infinite -1)
+  const availableFoods = FOOD_OPTIONS.filter(f => inventory[f.id] !== 0);
 
   const goLeft = useCallback(() => {
-    setFoodIndex((foodIndex - 1 + FOOD_OPTIONS.length) % FOOD_OPTIONS.length);
-  }, [foodIndex, setFoodIndex]);
+    const currentAvailIdx = availableFoods.findIndex(f => f.id === food.id);
+    const prev = (currentAvailIdx - 1 + availableFoods.length) % availableFoods.length;
+    const globalIdx = FOOD_OPTIONS.findIndex(f => f.id === availableFoods[prev].id);
+    setFoodIndex(globalIdx);
+  }, [food.id, availableFoods, setFoodIndex]);
 
   const goRight = useCallback(() => {
-    setFoodIndex((foodIndex + 1) % FOOD_OPTIONS.length);
-  }, [foodIndex, setFoodIndex]);
+    const currentAvailIdx = availableFoods.findIndex(f => f.id === food.id);
+    const next = (currentAvailIdx + 1) % availableFoods.length;
+    const globalIdx = FOOD_OPTIONS.findIndex(f => f.id === availableFoods[next].id);
+    setFoodIndex(globalIdx);
+  }, [food.id, availableFoods, setFoodIndex]);
 
   const pixelated = Platform.OS === 'web' ? ({ imageRendering: 'pixelated' } as any) : {};
 
@@ -102,52 +133,103 @@ const FoodSelect: React.FC<FoodSelectProps> = ({ onSelect, onBack }) => {
     <View style={styles.container}>
       {/* ── Top bar: back (LEFT/blue) + list (RIGHT/white) ── */}
       <View style={styles.topBar}>
-        <Pressable onPress={onBack} style={styles.topBtn}>
+        <Pressable onPress={listMode ? () => setListMode(false) : onBack} style={styles.topBtn}>
           <Image source={btnBlueSrc} style={[styles.btnFrame, pixelated]} resizeMode="contain" />
           <Image source={backArrowSrc} style={[styles.topBtnIcon, pixelated]} resizeMode="contain" />
         </Pressable>
 
-        <Pressable style={styles.topBtn}>
+        <Pressable style={styles.topBtn} onPress={() => setListMode(!listMode)}>
           <Image source={btnWhiteSrc} style={[styles.btnFrame, pixelated]} resizeMode="contain" />
           <Image source={listViewSrc} style={[styles.topBtnIcon, pixelated]} resizeMode="contain" />
         </Pressable>
       </View>
 
-      {/* ── Center: arrows + food display (no border, full width) ── */}
-      <View style={styles.centerRow}>
-        <Pressable onPress={goLeft} style={styles.arrowHit}>
-          <BouncingArrow direction="left" />
-        </Pressable>
-
-        <Pressable onPress={onSelect} style={styles.foodCard}>
-          {renderFoodImage()}
-        </Pressable>
-
-        <Pressable onPress={goRight} style={styles.arrowHit}>
-          <BouncingArrow direction="right" />
-        </Pressable>
-      </View>
-
-      {/* ── Name bar — wrapper with top/bottom border, inner blue bar ── */}
-      <View style={styles.nameBarOuter}>
-        <View style={styles.nameBarInner}>
-          <Text style={styles.nameText}>{food.name.toUpperCase()}</Text>
+      {listMode ? (
+        /* ── LIST VIEW ── */
+        <View style={styles.listContainer}>
+          <ScrollView style={styles.listScroll}>
+            {availableFoods.map((f) => {
+              const fQty = inventory[f.id];
+              const isSelected = f.id === food.id;
+              return (
+                <Pressable
+                  key={f.id}
+                  style={[styles.listItem, isSelected && styles.listItemHovered]}
+                  onHoverIn={() => {
+                    const idx = FOOD_OPTIONS.findIndex(fo => fo.id === f.id);
+                    setFoodIndex(idx);
+                  }}
+                  onPress={() => {
+                    const idx = FOOD_OPTIONS.findIndex(fo => fo.id === f.id);
+                    setFoodIndex(idx);
+                    setListMode(false);
+                  }}
+                >
+                  {isSelected && (
+                    <Animated.View style={[styles.listCursorWrap, { transform: [{ translateX: listBounce }] }]}>
+                      <Image source={cursorSrc} style={[styles.listCursorImg, pixelated]} resizeMode="contain" />
+                    </Animated.View>
+                  )}
+                  <View style={styles.listItemLeft}>
+                    {f.id === 'milk' ? (
+                      <Image source={milkImg} style={[styles.listItemIcon, pixelated]} resizeMode="contain" />
+                    ) : (
+                      <View style={styles.listItemIcon}>
+                        <PixelGrid data={FOOD_SPRITES[f.id] || []} pixelSize={2} />
+                      </View>
+                    )}
+                    <Text style={[styles.listItemName, isSelected && styles.listItemNameActive]}>{f.name.toUpperCase()}</Text>
+                  </View>
+                  <View style={styles.listItemRight}>
+                    <Text style={[styles.listItemQty, isSelected && styles.listItemQtyActive]}>x</Text>
+                    {fQty === -1 ? (
+                      <Image source={infinitySrc} style={[styles.listInfinity, pixelated]} resizeMode="contain" />
+                    ) : (
+                      <Text style={[styles.listItemQty, isSelected && styles.listItemQtyActive]}>{fQty}</Text>
+                    )}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
-      </View>
+      ) : (
+        /* ── CARD VIEW (original) ── */
+        <>
+          <View style={styles.centerRow}>
+            <Pressable onPress={goLeft} style={styles.arrowHit}>
+              <BouncingArrow direction="left" />
+            </Pressable>
 
-      {/* ── Bottom inventory — pill showing quantity ── */}
-      <View style={styles.bottomBarWrapper}>
-        <View style={styles.bottomBar}>
-          <View style={styles.inventoryRow}>
-            <Text style={styles.countX}>x</Text>
-            {food.quantity === -1 ? (
-              <Image source={infinitySrc} style={[styles.infinityIcon, pixelated]} resizeMode="contain" />
-            ) : (
-              <Text style={styles.countX}>{food.quantity}</Text>
-            )}
+            <Pressable onPress={onSelect} style={styles.foodCard}>
+              {renderFoodImage()}
+            </Pressable>
+
+            <Pressable onPress={goRight} style={styles.arrowHit}>
+              <BouncingArrow direction="right" />
+            </Pressable>
           </View>
-        </View>
-      </View>
+
+          <View style={styles.nameBarOuter}>
+            <View style={styles.nameBarInner}>
+              <Text style={styles.nameText}>{food.name.toUpperCase()}</Text>
+            </View>
+          </View>
+
+          <View style={styles.bottomBarWrapper}>
+            <View style={styles.bottomBar}>
+              <View style={styles.inventoryRow}>
+                <Text style={styles.countX}>x</Text>
+                {qty === -1 ? (
+                  <Image source={infinitySrc} style={[styles.infinityIcon, pixelated]} resizeMode="contain" />
+                ) : (
+                  <Text style={styles.countX}>{qty}</Text>
+                )}
+              </View>
+            </View>
+          </View>
+        </>
+      )}
     </View>
   );
 };
@@ -280,6 +362,84 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: 'VCROSDMono',
     marginTop: -2,
+  },
+
+  // ── List View ──
+  listContainer: {
+    flex: 1,
+    width: '100%' as any,
+  },
+
+  listScroll: {
+    flex: 1,
+    paddingLeft: 18,
+    paddingRight: 8,
+    paddingTop: 6,
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#F5A623',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 5,
+    position: 'relative' as const,
+  },
+  listItemHovered: {
+    borderColor: '#02015D',
+  },
+  listItemNameActive: {
+    color: '#02015D',
+  },
+  listItemQtyActive: {
+    color: '#0D12BC',
+  },
+  listCursorWrap: {
+    position: 'absolute',
+    left: -15,
+    top: '50%' as any,
+    marginTop: -7,
+  },
+  listCursorImg: {
+    width: 11,
+    height: 12,
+  },
+  listItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  listItemIcon: {
+    width: 22,
+    height: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  listItemName: {
+    fontFamily: 'VCROSDMono',
+    fontSize: 16,
+    color: '#F5A623',
+    fontWeight: '700',
+    textTransform: 'uppercase' as any,
+  },
+  listItemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  listItemQty: {
+    fontFamily: 'VCROSDMono',
+    fontSize: 16,
+    color: '#02015D',
+    fontWeight: '700',
+  },
+  listInfinity: {
+    width: 17,
+    height: 9,
   },
 });
 

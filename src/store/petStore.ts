@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PetStats, PetMood, DeviceMode, MenuItem, FoodItem, LifeStage } from '../types';
+import { PetStats, PetMood, DeviceMode, MenuItem, FoodItem, LifeStage, GamePhase } from '../types';
 import { clamp } from '../utils/time';
 import { FOOD_OPTIONS } from '../data/foodData';
 import { evolve, calculateCareRating, getAgingDuration, getCharacter } from '../data/evolution';
@@ -23,11 +23,18 @@ interface PetState {
   birthTime: number;
   lastSaveTime: number;
 
+  // Game phase + pet identity
+  gamePhase: GamePhase;
+  petName: string;
+
   // Evolution data
   characterId: string;
   lifeStage: LifeStage;
-  stageStartTime: number;       // When current stage began (ms timestamp)
-  evolutionPending: boolean;     // True when pet is ready to evolve
+  stageStartTime: number;
+  evolutionPending: boolean;
+
+  // Inventory — tracks quantity of each food item (-1 = infinite)
+  inventory: Record<FoodItem, number>;
 
   // Device UI state
   deviceMode: DeviceMode;
@@ -43,9 +50,11 @@ interface PetState {
   setDeviceMode: (mode: DeviceMode) => void;
   setMenuIndex: (idx: number) => void;
   setFoodIndex: (idx: number) => void;
+  setGamePhase: (phase: GamePhase) => void;
+  setPetName: (name: string) => void;
   tickDecay: () => void;
-  checkEvolution: () => void;    // Check if it's time to evolve
-  triggerEvolution: () => void;  // Actually evolve the pet
+  checkEvolution: () => void;
+  triggerEvolution: () => void;
   computeMood: () => PetMood;
   saveState: () => Promise<void>;
   loadState: () => Promise<void>;
@@ -57,11 +66,18 @@ export const usePetStore = create<PetState>((set, get) => ({
   birthTime: Date.now(),
   lastSaveTime: Date.now(),
 
-  // Evolution — start as baby_01 (egg stage skipped for now)
-  characterId: 'baby_01',
-  lifeStage: LifeStage.Baby,
+  // Game phase + pet identity
+  gamePhase: 'egg_intro' as GamePhase,
+  petName: '',
+
+  // Evolution — start as egg
+  characterId: 'egg_01',
+  lifeStage: LifeStage.Egg,
   stageStartTime: Date.now(),
   evolutionPending: false,
+
+  // Inventory — milk infinite, others have finite stock
+  inventory: { milk: -1, riceball: 3, apple: 5, cookie: 2 } as Record<FoodItem, number>,
 
   deviceMode: 'home',
   menuIndex: 0,
@@ -72,14 +88,28 @@ export const usePetStore = create<PetState>((set, get) => ({
     if (get().isSleeping) return; // Can't feed while sleeping
     const food = FOOD_OPTIONS.find(f => f.id === foodId);
     if (!food) return;
-    set(state => ({
-      stats: {
-        ...state.stats,
-        hunger: clamp(state.stats.hunger + food.hungerBoost, 0, 100),
-        happiness: clamp(state.stats.happiness + food.happinessBoost, 0, 100),
-      },
-      mood: 'eating',
-    }));
+
+    // Check inventory — skip if 0 (but -1 = infinite, always allowed)
+    const currentQty = get().inventory[foodId];
+    if (currentQty === 0) return; // Out of stock
+
+    set(state => {
+      const newInventory = { ...state.inventory };
+      // Decrement if not infinite (-1)
+      if (newInventory[foodId] > 0) {
+        newInventory[foodId] -= 1;
+      }
+
+      return {
+        stats: {
+          ...state.stats,
+          hunger: clamp(state.stats.hunger + food.hungerBoost, 0, 100),
+          happiness: clamp(state.stats.happiness + food.happinessBoost, 0, 100),
+        },
+        mood: 'eating' as PetMood,
+        inventory: newInventory,
+      };
+    });
     // Return to idle after animation (only if not sleeping)
     setTimeout(() => {
       if (!get().isSleeping) {
@@ -120,6 +150,8 @@ export const usePetStore = create<PetState>((set, get) => ({
   },
   setMenuIndex: (idx) => set({ menuIndex: idx }),
   setFoodIndex: (idx) => set({ foodIndex: idx }),
+  setGamePhase: (phase) => set({ gamePhase: phase }),
+  setPetName: (name) => set({ petName: name }),
 
   tickDecay: () => {
     set(state => {
@@ -196,7 +228,7 @@ export const usePetStore = create<PetState>((set, get) => ({
   saveState: async () => {
     try {
       const { stats, birthTime, isSleeping } = get();
-      const { characterId, lifeStage, stageStartTime } = get();
+      const { characterId, lifeStage, stageStartTime, inventory, gamePhase, petName } = get();
       const data = {
         stats,
         birthTime,
@@ -204,6 +236,9 @@ export const usePetStore = create<PetState>((set, get) => ({
         characterId,
         lifeStage,
         stageStartTime,
+        inventory,
+        gamePhase,
+        petName,
         savedAt: Date.now(),
       };
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -236,9 +271,13 @@ export const usePetStore = create<PetState>((set, get) => ({
         birthTime: data.birthTime,
         isSleeping: false, // wake up on app open
         // Restore evolution state
-        characterId: data.characterId || 'baby_01',
-        lifeStage: data.lifeStage || LifeStage.Baby,
+        characterId: data.characterId || 'egg_01',
+        lifeStage: data.lifeStage || LifeStage.Egg,
         stageStartTime: data.stageStartTime || Date.now(),
+        // Restore inventory + game phase
+        inventory: data.inventory || { milk: -1, riceball: 3, apple: 5, cookie: 2 },
+        gamePhase: data.gamePhase || 'playing',
+        petName: data.petName || '',
       });
     } catch {
       // No saved state — use defaults

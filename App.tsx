@@ -3,6 +3,8 @@ import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Font from 'expo-font';
 import EggShell from './src/components/EggShell';
+import EggDropScreen from './src/components/EggDropScreen';
+import NameEggScreen from './src/components/NameEggScreen';
 import { usePetStore, startAutoSave, stopAutoSave } from './src/store/petStore';
 import { FOOD_OPTIONS } from './src/data/foodData';
 import { triggerHaptic } from './src/utils/haptics';
@@ -27,6 +29,9 @@ export default function App() {
   const wakeUp = usePetStore(s => s.wakeUp);
   const tickDecay = usePetStore(s => s.tickDecay);
   const checkEvolution = usePetStore(s => s.checkEvolution);
+  const triggerEvolution = usePetStore(s => s.triggerEvolution);
+  const evolutionPending = usePetStore(s => s.evolutionPending);
+  const gamePhase = usePetStore(s => s.gamePhase);
   const loadState = usePetStore(s => s.loadState);
 
   // Load fonts on mount
@@ -36,6 +41,14 @@ export default function App() {
     }).then(() => setFontsLoaded(true))
       .catch(() => setFontsLoaded(true)); // fallback gracefully
   }, []);
+
+  // Auto-trigger evolution when pending (for now — later replace with animation screen)
+  useEffect(() => {
+    if (evolutionPending) {
+      console.log('[App] Evolution pending — triggering...');
+      triggerEvolution();
+    }
+  }, [evolutionPending, triggerEvolution]);
 
   // Load saved state + start timers on mount
   useEffect(() => {
@@ -189,6 +202,45 @@ export default function App() {
     );
   }
 
+  // Egg intro phase — egg drops from sky
+  if (gamePhase === 'egg_intro') {
+    return (
+      <View style={styles.container}>
+        <EggShell
+          onLeftPress={() => {}}
+          onMiddlePress={() => {}}
+          onRightPress={() => {}}
+          isInspectMode={false}
+          onToggleInspect={() => {}}
+        />
+        <View style={styles.phaseOverlay}>
+          <EggDropScreen />
+        </View>
+        <StatusBar style="light" />
+      </View>
+    );
+  }
+
+  // Naming phase — name your egg
+  if (gamePhase === 'naming') {
+    return (
+      <View style={styles.container}>
+        <EggShell
+          onLeftPress={() => {}}
+          onMiddlePress={() => {}}
+          onRightPress={() => {}}
+          isInspectMode={false}
+          onToggleInspect={() => {}}
+        />
+        <View style={styles.phaseOverlay}>
+          <NameEggScreen />
+        </View>
+        <StatusBar style="light" />
+      </View>
+    );
+  }
+
+  // Normal gameplay
   return (
     <View style={styles.container}>
       <EggShell
@@ -207,6 +259,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5D5A8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  phaseOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
     alignItems: 'center',
     justifyContent: 'center',
   },

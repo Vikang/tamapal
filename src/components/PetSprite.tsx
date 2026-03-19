@@ -56,6 +56,9 @@ const SPRITE_SHEETS: Record<string, any> = {
   'chara_138b': require('../assets/sprites/chara_138b.png'),
 };
 
+// Egg sprite — no sprite sheet, handled separately
+const EGG_SPRITE_KEY = 'egg';
+
 // Default fallback
 const DEFAULT_SPRITE = SPRITE_SHEETS['chara_1b'];
 
@@ -146,6 +149,25 @@ const PetSprite: React.FC<PetSpriteProps> = ({ mood, pixelSize = 7, spriteKey })
     }, pixelDuration);
     return () => clearInterval(interval);
   }, [mood, pixelFrames.length, pixelDuration]);
+
+  // Egg rendering — simple wobbling egg using pixel art
+  if (spriteKey === EGG_SPRITE_KEY) {
+    const eggPixels: PixelFrame = [
+      [null, null, '#F5E6D0', '#F5E6D0', '#F5E6D0', null, null, null],
+      [null, '#F5E6D0', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#F5E6D0', null, null],
+      ['#F5E6D0', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#F5E6D0', null],
+      ['#F5E6D0', '#FFFFFF', '#FFD700', '#FFFFFF', '#FFD700', '#FFFFFF', '#F5E6D0', null],
+      ['#F5E6D0', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#F5E6D0', null],
+      ['#F5E6D0', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#F5E6D0', null],
+      [null, '#F5E6D0', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#F5E6D0', null, null],
+      [null, null, '#F5E6D0', '#F5E6D0', '#F5E6D0', null, null, null],
+    ];
+    return (
+      <View style={styles.container}>
+        <PixelGrid data={eggPixels} pixelSize={pixelSize} />
+      </View>
+    );
+  }
 
   if (USE_SPRITES) {
     const config = SPRITE_ANIMATION[mood];

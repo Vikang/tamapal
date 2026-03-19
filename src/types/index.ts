@@ -24,6 +24,9 @@ export type TimeOfDay = 'day' | 'evening' | 'night';
 
 export type DeviceMode = 'home' | 'menu' | 'feeding' | 'bathing' | 'sleeping' | 'stats';
 
+/** Game phase — controls what screen is shown */
+export type GamePhase = 'egg_intro' | 'naming' | 'playing';
+
 export type PixelRow = (string | null)[];
 export type PixelFrame = PixelRow[];
 export type AnimationFrames = PixelFrame[];
